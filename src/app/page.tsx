@@ -1,13 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import ProductList from "@/components/homePageCom/productList";
 import Carousel from "@/components/carousel";
-import { Product } from "./modals/Product";
 import HalfBanners from "@/components/halfBanners";
-import CourseCard from "@/components/courseCard";
 import CourseList from "@/components/homePageCom/courseList";
+import ProductList from "@/components/homePageCom/productList";
+import { supabase } from "@/lib/supabase";
+import React, { useEffect, useState } from "react";
+import { RotatingLines } from "react-loader-spinner";
+import { Product } from "./modals/Product";
+
+// environment variable is used to determine if the app is in development mode
+const environment = process.env.NODE_ENV;
 
 interface HomeSection {
   id: number;
@@ -196,7 +199,19 @@ const HomePage: React.FC = () => {
   }, []);
 
   if (loading) {
-    return <div className="h-96 bg-gray-100 animate-pulse">Loading...</div>;
+    return (
+      <main className="flex items-center justify-center gap-2 h-96 bg-gray-100">
+        <RotatingLines
+        visible={true}
+        width="96"
+        strokeColor="#b91c1c"
+        strokeWidth="2"
+        animationDuration="0.75"
+        ariaLabel="rotating-lines-loading"
+        />
+        <span className="animate-pulse">Loading...</span>
+      </main>
+    );
   }
 
   if (error) {
@@ -247,7 +262,9 @@ const HomePage: React.FC = () => {
           return null;
         }
       })}
-      <CourseList />
+
+      {/* Render CourseList only in development mode */}
+      {(environment === "development") && <CourseList /> }
     </main>
   );
 };
