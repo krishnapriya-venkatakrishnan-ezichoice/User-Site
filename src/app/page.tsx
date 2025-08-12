@@ -209,7 +209,7 @@ const HomePage: React.FC = () => {
         animationDuration="0.75"
         ariaLabel="rotating-lines-loading"
         />
-        <span>Loading...</span>
+        <span className="animate-pulse">Loading...</span>
       </main>
     );
   }
