@@ -1,7 +1,5 @@
-import { supabase } from "@/lib/supabase";
 import ProductPageClient from "@/components/productPageCom/productPageClient";
-import Image from "next/image";
-import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 export const revalidate = 0;
 
@@ -10,7 +8,6 @@ async function fetchProduct(productId: string) {
   const { data, error } = await supabase
     .from("offers")
     .select(`*, offerVariation(*), vendor_id(*)`)
-    .eq("is_in_stock", true)
     .eq("id", productId);
 
   if (error) throw new Error(error.message);
@@ -25,12 +22,6 @@ export async function generateMetadata({
   params: { productId: string };
 }) {
   const product = await fetchProduct(params.productId);
-
-  if (!product) {
-    return {
-      title: "EziChoice - Product not found",
-    };
-  }
 
   const imageUrl = product?.offerVariation[0].img_url ?? `/logo.png`;
   console.log(product.offerVariation[0]?.img_url);
@@ -65,35 +56,6 @@ export default async function ProductPage({
   params: { productId: string };
 }) {
   const product = await fetchProduct(params.productId);
-
-  if (!product) {
-    return (
-      <div className="flex flex-col items-center justify-center  bg-gray-50 p-4">
-        <div className="bg-white p-8  text-center max-w-md">
-          <Image
-            src="/no-product.png"
-            alt="No product found"
-            width={80}
-            height={80}
-            className="mx-auto"
-          />
-          <h1 className="mt-4 text-2xl font-bold text-gray-800">
-            Product Not Found
-          </h1>
-          <p className="mt-2 text-gray-600">
-            We couldn&#39;t find the product you&#39;re looking for. It may have
-            been removed or is temporarily unavailable.
-          </p>
-          <Link
-            href="/"
-            className="mt-6 inline-block bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded"
-          >
-            Continue shopping
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>

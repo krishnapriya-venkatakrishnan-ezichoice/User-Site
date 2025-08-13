@@ -25,13 +25,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               layout="fill"
               objectFit="cover"
               className={`rounded-t-lg ${
-                product.status === "Expired" ? "filter grayscale" : ""
+                (product.status === "Expired" || !product.is_in_stock) ? "filter grayscale" : ""
               }`}
             />
             {
               !product.is_in_stock && (
                 <div className="absolute right-1 top-1 py-1 px-2 rounded-lg bg-gray-50 border-2 border-black">
-                  <span className="text-[0.75rem] uppercase font-medium">Out of Stock</span>
+                  <span className="text-[0.75rem] uppercase font-medium">Sold Out Now</span>
                 </div>
               )
             }
