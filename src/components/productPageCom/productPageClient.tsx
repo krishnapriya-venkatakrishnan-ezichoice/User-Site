@@ -1,16 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { Icon } from "@iconify/react";
-import ProductActionButton from "./productActionButton";
-import AddToCartButton from "./addToCartButton";
-import ProductCard from "../productCard";
-import { supabase } from "@/lib/supabase";
-import { formatCurrency } from "@/utils";
 import { Product } from "@/app/modals/Product";
 import { useAuth } from "@/context/authContext";
+import { supabase } from "@/lib/supabase";
+import { formatCurrency } from "@/utils";
+import { Icon } from "@iconify/react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import ProductCard from "../productCard";
+import AddToCartButton from "./addToCartButton";
+import ProductActionButton from "./productActionButton";
 
 interface ProductPageClientProps {
   product: any;
@@ -173,6 +173,7 @@ const ProductPageClient: React.FC<ProductPageClientProps> = ({ product }) => {
             actual_price: firstVariation.actual_price || offer.actual_price,
             img_url: firstVariation.img_url || offer.img_url,
             offer_variation_id: firstVariation.id,
+            is_in_stock: offer.is_in_stock,
           } as Product;
         });
 
@@ -235,6 +236,7 @@ const ProductPageClient: React.FC<ProductPageClientProps> = ({ product }) => {
             img_url: firstVariation.img_url || offer.img_url,
             offer_variation_id: firstVariation.id,
             categories: offer.category,
+            is_in_stock: offer.is_in_stock,
           } as Product;
         });
 

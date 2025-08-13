@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import ProductCard from "../productCard";
-import { ClipLoader } from "react-spinners";
-import { Icon } from "@iconify/react";
-import FilterOption from "./filterOptions"; // Adjust the import path as needed
 import { Product } from "@/app/modals/Product";
+import { supabase } from "@/lib/supabase";
+import { Icon } from "@iconify/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ClipLoader } from "react-spinners";
+import ProductCard from "../productCard";
+import FilterOption from "./filterOptions"; // Adjust the import path as needed
 
 // Define the shape of a Category, including optional fields
 interface Category {
@@ -160,6 +160,7 @@ export default function AllProductList({
           category,
           start_date,
           end_date,
+          is_in_stock,
           offerVariations:offerVariation(
             id,
             name,
@@ -220,6 +221,7 @@ export default function AllProductList({
               actual_price: firstVariation.actual_price || 0,
               img_url: firstVariation.img_url || offer.img_url || "",
               offer_variation_id: firstVariation.id,
+              is_in_stock: offer.is_in_stock,
             };
           });
 
