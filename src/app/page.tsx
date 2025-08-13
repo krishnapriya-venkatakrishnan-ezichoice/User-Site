@@ -5,8 +5,8 @@ import HalfBanners from "@/components/halfBanners";
 import CourseList from "@/components/homePageCom/courseList";
 import ProductList from "@/components/homePageCom/productList";
 import { supabase } from "@/lib/supabase";
+import { Icon } from "@iconify/react";
 import React, { useEffect, useState } from "react";
-import { RotatingLines } from "react-loader-spinner";
 import { Product } from "./modals/Product";
 
 // environment variable is used to determine if the app is in development mode
@@ -200,17 +200,12 @@ const HomePage: React.FC = () => {
 
   if (loading) {
     return (
-      <main className="flex items-center justify-center gap-2 h-96 bg-gray-100">
-        <RotatingLines
-        visible={true}
-        width="96"
-        strokeColor="#b91c1c"
-        strokeWidth="2"
-        animationDuration="0.75"
-        ariaLabel="rotating-lines-loading"
-        />
-        <span className="animate-pulse">Loading...</span>
-      </main>
+      <div className="flex justify-center items-center w-full h-screen bg-gray-50">
+        <div className="flex flex-col items-center">
+          <Icon icon="eos-icons:bubble-loading" width="24" height="24" />
+          <p className="text-gray-600 mt-4 text-lg font-medium">Loading...</p>
+        </div>
+      </div>
     );
   }
 
