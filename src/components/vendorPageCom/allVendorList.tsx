@@ -1,8 +1,9 @@
 "use client";
-import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import VendorList from "./vendorList";
 import { Vendor } from "@/types/vendor";
+import { useEffect, useState } from "react";
+import LoadingSpinner from "../loadingCom/LoadingSpinner";
+import VendorList from "./vendorList";
 
 export default function AllVendorList() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -51,7 +52,7 @@ export default function AllVendorList() {
   }, []);
 
   if (loading) {
-    return <p>Loading...</p>;
+    return <LoadingSpinner />;
   }
 
   if (error) {

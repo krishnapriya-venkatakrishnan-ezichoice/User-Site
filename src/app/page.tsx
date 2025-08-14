@@ -4,8 +4,8 @@ import Carousel from "@/components/carousel";
 import HalfBanners from "@/components/halfBanners";
 import CourseList from "@/components/homePageCom/courseList";
 import ProductList from "@/components/homePageCom/productList";
+import LoadingSpinner from "@/components/loadingCom/LoadingSpinner";
 import { supabase } from "@/lib/supabase";
-import { Icon } from "@iconify/react";
 import React, { useEffect, useState } from "react";
 import { Product } from "./modals/Product";
 
@@ -199,14 +199,7 @@ const HomePage: React.FC = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center w-full h-screen bg-gray-50">
-        <div className="flex flex-col items-center">
-          <Icon icon="eos-icons:bubble-loading" width="24" height="24" />
-          <p className="text-gray-600 mt-4 text-lg font-medium">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (error) {
