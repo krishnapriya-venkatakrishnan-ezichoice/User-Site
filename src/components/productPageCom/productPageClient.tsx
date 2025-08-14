@@ -343,47 +343,42 @@ const ProductPageClient: React.FC<ProductPageClientProps> = ({ product }) => {
               <p className="text-xl text-gray-400 my-4 md:text-left text-center">
                 Time Left: {timeLeft}
               </p>
-              {product.is_in_stock ? (
+              
+              <ProductActionButton
+                couponCode={product?.coupon}
+                referalLink={product?.referal_link}
+                productId={product?.id}
+                isInStock={product?.is_in_stock}
+              />
+              {!product?.referal_link && (
                 <>
-                  <ProductActionButton
-                    couponCode={product?.coupon}
-                    referalLink={product?.referal_link}
-                    productId={product?.id}
-                  />
-                  {!product?.referal_link && (
+                  {isPurchased && product.claims_limit ? (
+                    <p className="text-sm text-green-600 mt-2">
+                      You have purchased this product already
+                    </p>
+                  ) : (
                     <>
-                      {isPurchased && product.claims_limit ? (
-                        <p className="text-sm text-green-600 mt-2">
-                          You have purchased this product already
-                        </p>
-                      ) : (
-                        <>
-                          <AddToCartButton
-                            productId={product.id}
-                            name={product.name}
-                            price={parseInt(
-                              offerVariations[selectedProduct]?.actual_price ||
-                                "0"
-                            )}
-                            offerPrice={
-                              offerVariations[selectedProduct]?.offer_price || 0
-                            }
-                            image={
-                              offerVariations[selectedProduct]?.img_url ||
-                              "/sample.jpg"
-                            }
-                            vendorId={product.vendor_id?.id}
-                          />
-                        </>
-                      )}
+                      <AddToCartButton
+                        productId={product.id}
+                        name={product.name}
+                        price={parseInt(
+                          offerVariations[selectedProduct]?.actual_price ||
+                            "0"
+                        )}
+                        offerPrice={
+                          offerVariations[selectedProduct]?.offer_price || 0
+                        }
+                        image={
+                          offerVariations[selectedProduct]?.img_url ||
+                          "/sample.jpg"
+                        }
+                        vendorId={product.vendor_id?.id}
+                      />
                     </>
                   )}
                 </>
-              ) : (
-                <p className="text-red-600 font-semibold text-center">
-                  This product is out of stock.
-                </p>
               )}
+              
             </>
           )}
 
@@ -529,7 +524,7 @@ const ProductPageClient: React.FC<ProductPageClientProps> = ({ product }) => {
         </div>
 
         <div className="col-span-12 md:col-span-10">
-          <h1 className="p-4 text-lg">You may also like</h1>
+          <h1 className="p-4 text-lg">Popular Picks</h1>
           <div className="container mx-auto px-4 my-3 md:w-11/12">
             <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {products.length > 0

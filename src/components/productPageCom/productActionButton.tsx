@@ -1,19 +1,21 @@
 "use client";
 import { useAuth } from "@/context/authContext";
-import React, { useState, MouseEvent } from "react";
 import { Icon } from "@iconify/react/dist/iconify.js";
+import React, { MouseEvent, useState } from "react";
 import LoginDialog, { useLoginDialog } from "../utils/loginDialog";
 
 interface ProductActionButtonsProps {
   couponCode?: string;
   referalLink?: string;
   productId: string;
+  isInStock?: boolean;
 }
 
 const ProductActionButtons: React.FC<ProductActionButtonsProps> = ({
   couponCode,
   referalLink,
   productId,
+  isInStock
 }) => {
   const [showCoupon, setShowCoupon] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
@@ -81,7 +83,8 @@ const ProductActionButtons: React.FC<ProductActionButtonsProps> = ({
         {couponCode && !showCoupon && (
           <button
             onClick={handleCouponClick}
-            className="font-bold w-full flex items-center justify-center py-2 px-6 rounded bg-blue-500 hover:bg-blue-600 text-white transition ease-in-out duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-lg"
+            className={`font-bold w-full flex items-center justify-center py-2 px-6 rounded bg-blue-500 text-white transition ease-in-out duration-300 transform ${isInStock ? "hover:scale-105 hover:bg-blue-600": "filter grayscale"} focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-lg`}
+            disabled={!isInStock}
           >
             <Icon icon="mdi:ticket-percent-outline" className="mr-2 text-lg" />
             Get Coupon Code
@@ -107,7 +110,8 @@ const ProductActionButtons: React.FC<ProductActionButtonsProps> = ({
           (isLoggedIn ? (
             <button
               onClick={() => window.open(referalLink, "_blank")} // Opens referral link in a new tab
-              className="font-bold w-full flex items-center justify-center py-2 px-6 rounded bg-orange-500 hover:bg-orange-600 text-white transition ease-in-out duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-300 shadow-lg"
+              className={`font-bold w-full flex items-center justify-center py-2 px-6 rounded bg-orange-500 text-white transition ease-in-out duration-300 transform ${isInStock ? "hover:scale-105 hover:bg-orange-600": "filter grayscale"} focus:outline-none focus:ring-2 focus:ring-orange-300 shadow-lg`}
+              disabled={!isInStock}
             >
               <span className="mr-2">Buy Now</span>
               <Icon
@@ -118,7 +122,8 @@ const ProductActionButtons: React.FC<ProductActionButtonsProps> = ({
           ) : (
             <button
               onClick={handleLinkClick}
-              className="font-bold w-full flex items-center justify-center py-2 px-6 rounded bg-orange-500 hover:bg-orange-600 text-white transition ease-in-out duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-300 shadow-lg"
+              className={`font-bold w-full flex items-center justify-center py-2 px-6 rounded bg-orange-500 text-white transition ease-in-out duration-300 transform ${isInStock ? "hover:scale-105 hover:bg-orange-600": "filter grayscale"} focus:outline-none focus:ring-2 focus:ring-orange-300 shadow-lg`}
+              disabled={!isInStock}
             >
               <span className="mr-2">Buy Now</span>
               <Icon
@@ -131,7 +136,8 @@ const ProductActionButtons: React.FC<ProductActionButtonsProps> = ({
         {/* {!couponCode && !referalLink && (
         <button
           onClick={sendAsGift}
-          className="font-bold w-full flex items-center justify-center py-2 px-6 rounded bg-yellow-500 hover:bg-yellow-600 text-white transition ease-in-out duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-300 shadow-lg"
+          className={`font-bold w-full flex items-center justify-center py-2 px-6 rounded bg-yellow-500 text-white transition ease-in-out duration-300 transform ${isInStock ? "hover:scale-105 hover:bg-yellow-600": "filter grayscale"} focus:outline-none focus:ring-2 focus:ring-yellow-300 shadow-lg`}
+          disabled={!isInStock}
         >
           <Icon icon="mdi:gift-outline" className="mr-2 text-lg" />
           Send as a Gift
