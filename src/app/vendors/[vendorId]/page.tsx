@@ -1,14 +1,15 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import Image from "next/image";
+import { Product } from "@/app/modals/Product";
+import LoadingSpinner from "@/components/loadingCom/LoadingSpinner";
 import ProductFullList from "@/components/utils/productFullList";
 import { supabase } from "@/lib/supabase";
 import { Icon } from "@iconify/react/dist/iconify.js";
+import Image from "next/image";
+import { useParams } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import { Product } from "@/app/modals/Product";
+import "slick-carousel/slick/slick.css";
 
 interface Vendor {
   id: string;
@@ -188,7 +189,7 @@ const VendorPage: React.FC = () => {
     return words.slice(0, wordLimit).join(" ");
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <LoadingSpinner />;
   if (error) return <div>Error: {error}</div>;
   if (!vendor) return <div>Vendor not found</div>;
 
