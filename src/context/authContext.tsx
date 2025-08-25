@@ -44,6 +44,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoggedIn(true);
         const details = transformUserToUserDetails(session.user);
         setUserDetails(details);
+        if (session.user.app_metadata.provider !== "email") {
+          const avatarUrl = session.user.user_metadata.avatar_url;
+          setUserImg(avatarUrl && avatarUrl !== "" ? avatarUrl : "/profile.png");
+        }
       } else {
         setIsLoggedIn(false);
         setUserDetails(null);
@@ -62,17 +66,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     
-    const getAvatarUrl = async () => {
+    const getUser = async () => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+          data: { user },
+        } = await supabase.auth.getUser();
+        
+      return user;
+    }
 
-      if (!user) return null;
-
+    const getAvatarUrl = async (userId: string) => {
+      
       const { data, error } = await supabase
         .from("profiles")
         .select("avatar_url")
-        .eq("id", user?.id)
+        .eq("id", userId)
         .single();
 
       if (error) {
@@ -84,8 +91,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     const fetchAndSetAvatarUrl = async () => {
+      const user = await getUser();
+
+      if (user?.app_metadata.provider !== "email")
+        return
+
       if (isLoggedIn && !userImg) {
-        const avatarUrl = await getAvatarUrl();
+        const avatarUrl = await getAvatarUrl(user?.id!);
         setUserImg(avatarUrl && avatarUrl !== "" ? avatarUrl : "/profile.png");
       }
     }
@@ -128,7 +140,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsLoggedIn(true);
       const transformedDetails = transformUserToUserDetails(user);
       setUserDetails(transformedDetails);
-      
+      if (user.app_metadata.provider !== "email")
+        setUserImg(user.user_metadata.avatar_url || "/profile.png");
+
       const profileData = await fetchUserProfile(user.id);
       if (profileData) {
         setUserDetails({
