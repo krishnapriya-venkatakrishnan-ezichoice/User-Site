@@ -1,9 +1,9 @@
 "use client"; // Ensure this component runs on the client side
 
-import React, { useRef } from "react";
-import Link from "next/link";
 import { useAuth } from "@/context/authContext";
 import Image from "next/image";
+import Link from "next/link";
+import React, { useRef } from "react";
 
 const AvatarMenu: React.FC = () => {
   const { isLoggedIn, userDetails, userImg, loading, handleSignOut } =
@@ -34,7 +34,7 @@ const AvatarMenu: React.FC = () => {
           <div className="w-8 h-8 bg-gray-300 rounded-full dark:bg-gray-700"></div>
           <span className="sr-only">Loading...</span>
         </div>
-      ) : isLoggedIn ? (
+      ) : isLoggedIn ? userImg && (
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}

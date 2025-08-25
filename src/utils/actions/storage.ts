@@ -219,7 +219,7 @@ export async function moveTempToPermStorage(supabase: SupabaseClient) : Promise<
     const {error: updateError} = await supabase
       .from("profiles")
       .update({
-        profile_pic_url: permanentFileUrls.profilePicUrl || null,
+        avatar_url: permanentFileUrls.profilePicUrl || null,
         student_proof_url: permanentFileUrls.studentProofUrls,
         national_id_proof_url: permanentFileUrls.nationalIdProofUrls,
       })

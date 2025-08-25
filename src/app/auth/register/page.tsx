@@ -160,8 +160,10 @@ export default function Page() {
   useEffect(() => {
     if (!formik.values.dob) return;
     const age = calculateAge(formik.values.dob);
-    if (age >= 60 && !formik.values.userType)
-      formik.setFieldValue("userType", "pension");
+    if (age >= 60) {
+      if (formik.values.userType === "general")
+        formik.setFieldValue("userType", "pension");
+    }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formik.values.dob]);
