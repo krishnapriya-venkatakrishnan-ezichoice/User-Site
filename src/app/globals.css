@@ -7,6 +7,19 @@
   font-family: "Poppins", sans-serif !important;
 } */
 
+@layer utilities {
+  .hide-password-toggle::-ms-reveal {
+    display: none;
+  }
+  .hide-password-toggle::-webkit-outer-spin-button,
+  .hide-password-toggle::-webkit-inner-spin-button,
+  .hide-password-toggle::-webkit-reveal {
+    -webkit-appearance: none;
+    margin: 0;
+    display: none;
+  }
+}
+
 @keyframes snow {
   0% {
     transform: translateY(0) rotate(0deg);

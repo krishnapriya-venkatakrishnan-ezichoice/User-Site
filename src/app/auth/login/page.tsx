@@ -1,14 +1,13 @@
 "use client";
 
-import FacebookLoginButton from "@/components/loginPageCom/favebookLoginButton";
+import AppleLoginButton from "@/components/loginPageCom/appleLoginButton";
 import GoogleLoginButton from "@/components/loginPageCom/googleLoginButton";
-import React from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
 import { supabase } from "@/lib/supabase";
+import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import * as Yup from "yup";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -164,7 +163,8 @@ export default function LoginPage() {
 
         <div className="flex justify-center items-center pt-3 gap-4">
           <GoogleLoginButton />
-          <FacebookLoginButton />
+          <AppleLoginButton />
+          {/* <FacebookLoginButton /> */}
         </div>
 
         <p className="mt-10 text-center text-sm text-gray-500">
