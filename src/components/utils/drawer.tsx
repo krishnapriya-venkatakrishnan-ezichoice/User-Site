@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useAuth } from "@/context/authContext";
 import { supabase } from "@/lib/supabase";
 import { Icon } from "@iconify/react";
-import { useAuth } from "@/context/authContext";
+import React, { useEffect, useState } from "react";
 
 // Category Interfaces
 interface Category {
@@ -100,6 +100,15 @@ const CategoryItem: React.FC<CategoryItemProps> = ({ node }) => {
 
   const hasChildren = node.children.length > 0;
 
+  // When the category is clicked, it should display all the offers under the assocatiated subcategories.
+  // Update the URL to include the subcategory IDs
+  let subCategoryIds = "";
+  if (hasChildren) {
+    subCategoryIds = `?category=${node.children.map((child) => child.data.id).join("%2C")}`;
+  } else {
+    subCategoryIds = `?category=${node.data.id}`;
+  }
+  
   const toggleOpen = () => {
     setIsOpen(!isOpen);
   };
@@ -120,7 +129,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({ node }) => {
             <Icon icon="mdi:folder-outline" className="w-5 h-5 mr-2" />
           )}
 
-          <a href={`/products?category=${node.data.id}`} className="text-sm">
+          <a href={`/products${subCategoryIds}`} className="text-sm">
             {node.data.name}
           </a>
         </div>

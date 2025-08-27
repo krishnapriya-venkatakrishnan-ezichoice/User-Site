@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
 import { Icon } from "@iconify/react";
+import React from "react";
 
 interface Category {
   id: number;
@@ -58,12 +58,32 @@ const FilterOption: React.FC<FilterOptionProps> = ({
 
   // Get all descendant IDs of a category node (including the category itself)
   const getAllDescendantIds = (node: CategoryNode): number[] => {
-    let ids = [node.id];
-    node.children.forEach((child) => {
-      ids = ids.concat(getAllDescendantIds(child));
-    });
-    return ids;
+    // Get the last level nodes of the category tree
+    // from the given node.
+    // Check how many of the last level nodes are selected
+    // and return the IDs accordingly.
+    
+    return getLastLevelNodes(node).map((child) => child.id);
   };
+
+  const getLastLevelNodes = (node: CategoryNode) => {
+    // Get the last level nodes of the category tree
+    // from the given node
+
+    // The node can be a leaf node or a parent node.
+    // If it is a leaf node, return the node itself.
+    if (node.children.length === 0) {
+      return [node];
+    }
+
+    // If it is a parent node, recursively get the last level nodes from its children
+    let lastLevelNodes: CategoryNode[] = [];
+    node.children.forEach((child: CategoryNode) => {
+      lastLevelNodes = lastLevelNodes.concat(getLastLevelNodes(child));
+    });
+
+    return lastLevelNodes;
+  }
 
   // Check if a node is fully selected, partially selected, or not selected
   const getNodeSelectionState = (

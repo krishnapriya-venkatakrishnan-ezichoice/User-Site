@@ -180,7 +180,6 @@ export default function AllProductList({
         )
         .eq("is_approved", true)
         .lte("start_date", todayString)
-        .eq("is_in_stock", true)
         .gte("end_date", todayString)
         .not("admin", "is", null)
         .order("id", { ascending: false }) // e.g. newest first
@@ -329,6 +328,7 @@ export default function AllProductList({
   // 8. Reflect filters in the URL (so refreshing keeps them)
   // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (!paramsLoaded) return;
     const params = new URLSearchParams();
 
     if (checkedCategories.length > 0) {
@@ -532,22 +532,26 @@ export default function AllProductList({
 
         {/* Products grid */}
         <div className="container mx-auto px-4 my-3 md:w-11/12">
-          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {products.map((product, index) => {
-              if (products.length === index + 1) {
-                return (
-                  <div ref={lastProductElementRef} key={product.id}>
-                    <ProductCard product={product} />
-                  </div>
-                );
-              }
-              return <ProductCard key={product.id} product={product} />;
-            })}
-          </div>
-
-          {loading && (
+          {loading ? (
             <div className="flex justify-center items-center my-4">
               <ClipLoader color="#36D7B7" size={30} />
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-gray-500 h-[300px] flex items-center justify-center">
+              No offers found matching your criteria.
+            </div>
+          ): (
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {products.map((product, index) => {
+                if (products.length === index + 1) {
+                  return (
+                    <div ref={lastProductElementRef} key={product.id}>
+                      <ProductCard product={product} />
+                    </div>
+                  );
+                }
+                return <ProductCard key={product.id} product={product} />;
+              })}
             </div>
           )}
         </div>
