@@ -5,8 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useRef } from "react";
 
+import { Tooltip } from 'react-tooltip';
+
 const AvatarMenu: React.FC = () => {
-  const { isLoggedIn, userDetails, userImg, loading, handleSignOut } =
+  const { isLoggedIn, userDetails, userImg, loading, handleSignOut, isProfileCompleted } =
     useAuth(); // Use context values
   const [isDropdownOpen, setIsDropdownOpen] = React.useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -38,7 +40,7 @@ const AvatarMenu: React.FC = () => {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="focus:outline-none flex items-center justify-center"
+            className="focus:outline-none flex items-center justify-center relative"
             aria-label="User menu"
           >
             <Image
@@ -48,6 +50,13 @@ const AvatarMenu: React.FC = () => {
               className="rounded-full cursor-pointer"
               alt={userDetails ? userDetails.name : "Profile Picture"}
             />
+            
+            {!isProfileCompleted && <div className="absolute -top-2 -right-2 text-[0.75rem] rounded-full w-4 h-4 text-red-600 font-bold" data-tooltip-id="my-tooltip" data-tooltip-content="Profile incomplete!">
+              <span className="font-bold">
+                !
+              </span>
+            </div>}
+            <Tooltip id="my-tooltip" />
           </button>
           {isDropdownOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">

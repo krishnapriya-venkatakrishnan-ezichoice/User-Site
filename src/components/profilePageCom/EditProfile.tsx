@@ -1,40 +1,53 @@
 "use client";
 
-import { Icon } from "@iconify/react";
-import { useFormik } from "formik";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import DatePicker from "react-datepicker";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { supabase } from '@/lib/supabase';
+import { calculateAge, getCities, getCountryData } from '@/utils';
+import { GENERAL_SUPPORTED_FORMATS, IMAGE_SUPPORTED_FORMATS } from '@/utils/constants';
+import { registrationFormType } from '@/utils/schemas/registrationForm';
+import { Icon } from '@iconify/react';
 
-import { calculateAge, getCities, getCountryData } from "@/utils";
-import { GENERAL_SUPPORTED_FORMATS, IMAGE_SUPPORTED_FORMATS } from "@/utils/constants";
-import { createRegistrationValidationSchema, registrationFormInitialValues, registrationFormType } from "@/utils/schemas/registrationForm";
+import { useFormik } from 'formik';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+import { editFormInitialValues, editFormType, editProfileFormValidationSchema, setDefaultValuesInEditForm } from '@/utils/schemas/editProfileForm';
+import { useEffect, useState } from 'react';
+import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 
-import { signUpWithCredentials } from "@/utils/actions/storage";
-import Link from "next/link";
+import { toast, ToastContainer } from 'react-toastify';
+import "react-toastify/dist/ReactToastify.css";
 
+import { useAuth } from '@/context/authContext';
+import { updateProfile } from '@/utils/actions/storage';
+import LoadingSpinner from '../loadingCom/LoadingSpinner';
 
-export default function Page() {
+const EditProfile = (
+  { userId, userEmail, provider, setIsEditing } 
+  : { userId: string, userEmail: string, provider: string, setIsEditing: React.Dispatch<React.SetStateAction<boolean>> }) => {
+
+  const { setIsUserUpdated, socialUserImg } = useAuth();
 
   // useRouter
   const router = useRouter();
-  
+
   // useState
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [schoolProofUrl, setSchoolProofUrl] = useState<string[] | []>([]);
   const [nationalIdProofUrl, setNationalIdProofUrl] = useState<string[] | []>([]);
-  
+
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  const [defaultValues, setDefaultValues] = useState<editFormType>(editFormInitialValues);
   const [showPassword, setShowPassword] = useState(false);
-
+  
   const [cities, setCities] = useState([...getCities("all")]); // used in City dropdown
-
+  
   // Get the countries
   const countries = getCountryData();
-
+  
   // ---- This piece of code should be removed.
   // address.country is now removed. The geographic data is focused only in Sri Lanka. In future address.country will be enabled.
   // Once enabled, the currentCountryCode should be removed.
@@ -42,12 +55,15 @@ export default function Page() {
   const currentCountryCode = "LK";
 
   // hook to handle form validation
-  const formik = useFormik<registrationFormType>({
-    initialValues: registrationFormInitialValues,
-    validationSchema: createRegistrationValidationSchema,    
+  const formik = useFormik<editFormType>({
+    initialValues: defaultValues,
+    validationSchema: editProfileFormValidationSchema(provider),    
+    enableReinitialize: true,
     onSubmit: async (values, {setSubmitting}) => {
-      setSubmitting(true);
       try{
+        setSubmitting(true);
+        setIsUserUpdated(false);
+        debugger;
         // Step-1: pass the form data to the server action
         const formData = new FormData();
         formData.append("fullName", values.fullName);
@@ -58,37 +74,38 @@ export default function Page() {
           formData.append("dob", values.dob?.toISOString());
         formData.append("userType", values.userType);
         formData.append("nationalId", values.nationalId);
-        
+          
         formData.append("addressLine1", values.address.addressLine1);
         formData.append("addressLine2", values.address.addressLine2 || "");
         formData.append("city", values.address.city);
         formData.append("country", currentCountryCode);
         formData.append("zipCode", values.address.zipCode);
-        
+          
         if (values.userType === "student"){
           formData.append("schoolName", values.school.name);
           formData.append("schoolId", values.school.id);
           if (values.school.expiry)
             formData.append("schoolExpiry", values.school.expiry?.toISOString());
         }
-
+  
         // append files to FormData object
         if (values.profilePic instanceof File)
           formData.append("profilePic", values.profilePic);
-
+        else if (typeof values.profilePic === "string" && values.profilePic !== "")
+          formData.append("profilePic", values.profilePic);
+  
         if (values.userType === "student" && Array.isArray(values.school.proof))
           values.school.proof.forEach(file => formData.append("studentProof", file));
-
+  
         if (values.userType === "pension" && Array.isArray(values.nationalIdProof))
           values.nationalIdProof.forEach(file => formData.append("nationalIdProof", file));
-
-        const result = await signUpWithCredentials(formData, currentCountryCode);
-
+  
+        const result = await updateProfile(formData, currentCountryCode, userId, profile!);
         if (!result)
-          throw new Error("Sign up failed");
-        
-        // Step-2: Raise success toast, when form submission is successful.
-        toast.success("Sign Up successful! Please check your email to verify your account.", {
+          throw new Error("Profile update failed");
+          
+        // Step-2: Raise success toast, when profile update is successful.
+        toast.success("Profile update successful!", {
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
@@ -97,14 +114,14 @@ export default function Page() {
           draggable: true,
           progress: undefined
         });
-
+  
         // Step-3: Redirect to login page
-        router.push("/auth/login");
+        router.push("/profile");
       }
       catch (error: any) {
         // Step-4: Handle errors
-        console.error("Sign Up Process Failed:", error);
-        toast.error(`Sign Up failed: ${error.message || "An unexpected error occurred. Please try again."}`, {
+        console.error("Profile update Failed:", error);
+        toast.error(`Profile update failed: ${error.message || "An unexpected error occurred. Please try again."}`, {
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
@@ -115,12 +132,43 @@ export default function Page() {
         });
       } finally {
         // Step-5: Always reset submitting state
+        setIsUserUpdated(true);
         setSubmitting(false); // Ensure this is called once after async process completes
+        setIsEditing(false);
       }
     }
   });
 
-  // useEffect-1: Populate city, phone code when country is changed
+  // useEffect-1: Get the profiles data
+  useEffect(() => {
+    debugger;
+    const fetchUserProfile = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch the user's profile
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .single();
+        
+        if (error)
+          throw new Error(error.message);
+        
+        setDefaultValuesInEditForm(data, userEmail, setDefaultValues);
+        setProfile(data);
+      } catch (err) {
+        if (err instanceof Error)
+          console.error("Error fetching profiles record: ", err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+    fetchUserProfile();
+  }, [userId]);
+
+  // useEffect-2: Populate city, phone code when country is changed
   useEffect(() => {
     // if (!formik.values.address.country){
     if (!currentCountryCode) {
@@ -128,35 +176,35 @@ export default function Page() {
       formik.setFieldValue("address.city", "");
       return
     }
-
+  
     // const codeIndex = countries.findIndex((country) => country.code === formik.values.address.country);
     const codeIndex = countries.findIndex((country) => country.code === currentCountryCode);
-
+  
     if(codeIndex !== -1){
       setCities(countries[codeIndex].cities);
     }
-
+  
     // }, [formik.values.address.country]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCountryCode]);
-
-  // useEffect-2: Populate country, when the city is selected.
+  
+  // useEffect-3: Populate country, when the city is selected.
   useEffect(() => {
     if (!formik.values.address.city)
       return
-    
+      
     const codeIndex = countries.findIndex((country) => country.cities.includes(formik.values.address.city));
-
+  
     if (codeIndex !== -1) {
       // if (formik.values.address.country !== countries[codeIndex].code)
       if (currentCountryCode !== countries[codeIndex].code)
         formik.setFieldValue("address.country", countries[codeIndex].code);
     }
-
+  
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formik.values.address.city]);
-
-  // useEffect-3: Set user type for pension users, when age is >= 60
+  
+  // useEffect-4: Set user type for pension users, when age is >= 60
   useEffect(() => {
     if (!formik.values.dob) return;
     const age = calculateAge(formik.values.dob);
@@ -164,66 +212,77 @@ export default function Page() {
       if (formik.values.userType === "general")
         formik.setFieldValue("userType", "pension");
     }
-
+  
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formik.values.dob]);
-
-  // useEffect-4: To render the profile picture
+  
+  // useEffect-5: To render the profile picture
   useEffect(() => {
-
+  
     if (formik.values.profilePic) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreviewUrl(reader.result as string);
+      if (typeof formik.values.profilePic === "string")
+        setImagePreviewUrl(formik.values.profilePic)
+      else {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreviewUrl(reader.result as string);
+        }
+        reader.readAsDataURL(formik.values.profilePic);
       }
-      reader.readAsDataURL(formik.values.profilePic);
     } else {
-      setImagePreviewUrl(null);
+      if (provider === "email")
+        setImagePreviewUrl(null);
+      else
+        setImagePreviewUrl(socialUserImg);
     }
-
+  
   }, [formik.values.profilePic]);
-
-  // useEffect-5: To render the school proof
+  
+  // useEffect-6: To render the school proof
   useEffect(() => {
-
+  
     const files = formik.values.school?.proof;
     const newUrls: string[] = [];
-
+  
     if (files && files.length > 0) {
       files.forEach(file => {
-        newUrls.push(URL.createObjectURL(file))
+        if (typeof file === "string")
+          newUrls.push(file);
+        else
+          newUrls.push(URL.createObjectURL(file))
       });
       setSchoolProofUrl(newUrls);
-      
+        
       return () => {
         newUrls.forEach(url => URL.revokeObjectURL(url));
       }
     } else {
       setSchoolProofUrl([]);
     }
-
+  
   }, [formik.values.school?.proof]);
-
-  // useEffect-6: To render the nic proof
+  
+  // useEffect-7: To render the national ID proof
   useEffect(() => {
     const files = formik.values.nationalIdProof;
     const newUrls: string[] = [];
-
     if (files && files.length > 0) {
       files.forEach(file => {
-        newUrls.push(URL.createObjectURL(file))
+        if (typeof file === "string")
+          newUrls.push(file);
+        else
+          newUrls.push(URL.createObjectURL(file))
       });
       setNationalIdProofUrl(newUrls);
-      
+        
       return () => {
         newUrls.forEach(url => URL.revokeObjectURL(url));
       }
     } else {
       setNationalIdProofUrl([]);
     }
-
+  
   }, [formik.values.nationalIdProof]);
-
 
   // Helper function for rendering file input sections
   const renderFileInput = (
@@ -235,20 +294,18 @@ export default function Page() {
     previewUrl: string[] | [],
   ) => {
     
-    const files = formik.getFieldProps(fieldName).value as File[] | null;
+    const currentItems = (formik.getFieldProps(fieldName).value || []) as (File | string)[] | [];
     const touched = formik.getFieldMeta(fieldName).touched;
     const error = formik.getFieldMeta(fieldName).error;
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       const newFiles = event.currentTarget.files;
-      const currentFiles = files || [];
+      let updatedItems = [...currentItems];
 
       if (newFiles) {
-        const updatedFiles = newFiles.length > 0 
-          ? [...currentFiles, ...Array.from(newFiles)]
-          : currentFiles;
-        formik.setFieldValue(fieldName, updatedFiles);
+        updatedItems = [...updatedItems, ...Array.from(newFiles)];
       }
+      formik.setFieldValue(fieldName, updatedItems);
 
       // Trigger validation
       setTimeout(() => {
@@ -256,11 +313,11 @@ export default function Page() {
       }, 0);
     }
 
-    const handleDeleteFile = (fileToDelete: File) => {
-      const updatedFiles = files?.filter(file => file !== fileToDelete);
+    const handleDeleteFile = (itemToDelete: File | string) => {
+      const updatedItems = currentItems?.filter(item => item !== itemToDelete);
       
-      const finalFiles = updatedFiles && updatedFiles.length > 0 ? updatedFiles : null;
-      formik.setFieldValue(fieldName, finalFiles);
+      const finalItems = updatedItems && updatedItems.length > 0 ? updatedItems : null;
+      formik.setFieldValue(fieldName, finalItems);
       
       // Trigger validation
       setTimeout(() => {
@@ -268,6 +325,50 @@ export default function Page() {
       }, 0);
     }
     
+    const getFileViewUrl = (item: File | string) => {
+      const isFile = item instanceof File;
+      let fileType = "";
+      let itemUrl = "";
+
+      if (isFile) {
+        fileType = item.type;
+        itemUrl = URL.createObjectURL(item);
+      } else {
+        itemUrl = item;
+        const extension = itemUrl.split(".").pop()?.toLowerCase();
+        switch (extension) {
+          case "doc":
+            fileType = "application/msword";
+            break;
+          case "docx":
+            fileType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            break;
+          case "pdf":
+            fileType = "application/pdf";
+            break;
+          case "jpg":
+          case "jpeg":
+            fileType = "image/jpeg";
+            break;
+          case "png":
+            fileType = "image/png";
+            break;
+          case "gif":
+            fileType = "image/gif";
+            break;
+          case "txt":
+            fileType = "text/plain";
+            break;
+          default:
+            fileType = "";
+        }
+
+        if (fileType === "application/msword" || fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+          return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(itemUrl)}`;
+      }
+      return itemUrl;
+    }
+
     return (
       <div>
         <label htmlFor={fieldName} className="block text-sm font-medium leading-6 text-gray-900">
@@ -290,7 +391,7 @@ export default function Page() {
                 ? "ring-red-500"
                 : ""
             }`}>Choose Files</label>
-          {files && files.length > 0 && <span className="text-sm pr-2">{`${files.length} file${files.length === 1 ? "" : "s"}`}</span>}
+          {currentItems && currentItems.length > 0 && <span className="text-sm pr-2">{`${currentItems.length} file${currentItems.length === 1 ? "" : "s"}`}</span>}
         </div>
         {touched && error && (
           <div className="mt-1 text-sm text-red-600">
@@ -299,21 +400,23 @@ export default function Page() {
         )}
         
         {/* Render the list of selected files */}
-        {files && files.length > 0 && (
+        {currentItems && currentItems.length > 0 && (
           <div className="mt-1 space-y-1">
-            {files.map((file, index) => {
-              const url = previewUrl[index];
+            {currentItems.map((item, index) => {
+
+              const isFile = item instanceof File;
+              const itemUrl = getFileViewUrl(item);
+
+              const itemName = isFile ? (item as File).name : (item as string).split("/").pop() || "Unknown File";
+
               return (
-                <div key={file.name + index} className="flex items-center justify-between rounded-md border p-2">
+                <div key={itemUrl + index} className="flex items-center justify-between rounded-md border p-2">
                   <div className="flex-1 overflow-hidden">
-                    {url ? <Link href={url} target="_blank" className="text-sm text-indigo-600 truncate">{file.name}</Link>
-                    : (
-                      <span className="text-sm text-gray-600 truncate">{file.name}</span>
-                    )}
+                    <Link href={itemUrl} target="_blank" className="text-sm text-indigo-600 truncate" rel='noopened noreferrer'>{itemName}</Link>
                   </div>
                   <button
                   type="button"
-                  onClick={() => handleDeleteFile(file)}
+                  onClick={() => handleDeleteFile(item)}
                   className="ml-2 text-red-500 hover:text-red-700 focus:outline-none cursor-pointer">
                     <Icon icon="bi:x" className="text-2xl cursor-pointer" />
                   </button>
@@ -406,6 +509,7 @@ export default function Page() {
               value={value}
               autoComplete={autoComplete}
               className={`${inputClasses} ${isPassword ? "hide-password-toggle": ""}`}
+              disabled={autoComplete === "email"}
             />
             {isPassword && (
               <button
@@ -435,20 +539,31 @@ export default function Page() {
     );
   };
 
+  if (isLoading)
+    return <LoadingSpinner />
+
   return (
-    <div className="flex min-h-full flex-col justify-center px-2 py-3 lg:px-8 border border-gray-200 rounded-lg shadow-lg max-w-5xl mx-auto bg-white">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <div className="flex min-h-full flex-col justify-center px-2 py-3 lg:px-8 border border-gray-200 rounded-lg shadow-lg w-full max-w-5xl mx-auto bg-white">
+      <div className="mx-auto w-full flex flex-col justify-between items-center">
+        <button
+          onClick={() => setIsEditing(false)}
+          className="self-end flex justify-center rounded-md bg-indigo-600 p-3 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+          // disabled={isSaving}
+        >
+          Cancel
+        </button>
         <h2 className="mt-2 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
-          Register Now
+          Update Profile
         </h2>
       </div>
-
+  
       <div className="p-3 rounded-md">
         <div className="mt-2">
-          <form onSubmit={formik.handleSubmit} className="space-y-1 max-w-5xl mx-auto  grid grid-cols-1 md:grid-cols-2 md:gap-2">
+          <form onSubmit={formik.handleSubmit} className="space-y-1 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 md:gap-2">
             
             {/* Profile picture */}
             <div className="md:col-span-2 flex flex-col items-center">
+              <div className="flex items-center gap-2">
               <label htmlFor="profilePic" className="relative w-32 h-32 md:w-48 md:h-48 mx-auto rounded-full overflow-hidden bg-gray-100 border-4 border-transparent hover:border-indigo-600 group cursor-pointer flex items-center justify-center transition-all duration-300">
                 <input
                   id="profilePic"
@@ -465,7 +580,7 @@ export default function Page() {
                   onBlur={formik.handleBlur}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                 />
-
+  
                 {
                   imagePreviewUrl ? (
                     <Image
@@ -486,7 +601,10 @@ export default function Page() {
                     <Icon icon="bi:camera-fill" className="text-4xl" />
                 </div>
               </label>
-          
+              <div className="cursor-pointer" onClick={() => formik.setFieldValue("profilePic", "")}>
+                <Icon icon="bi:trash" className="text-red-500" />
+              </div>
+              </div>
               {formik.touched.profilePic && formik.errors.profilePic ? (
                 <div className="mt-1 text-sm text-red-600">
                   {formik.errors.profilePic}
@@ -494,16 +612,16 @@ export default function Page() {
               ) : null}
               
             </div>
-
+  
             {/* Common fields */}
             <h3 className="md:col-span-2 font-semibold text-gray-300 pt-4 uppercase">Basic Information</h3>
             {renderInputField("fullName", true, "Full Name", "text", "name")}
             {renderInputField("email", true, "Email Address", "email", "email")}
-            {renderInputField("password", true, "Password", "password", "new-password", "", true)}
-            {renderInputField("confirmPassword", true, "Confirm Password", "password", "new-password", "", true)}
+            {provider === "email" && renderInputField("password", true, "Password", "password", "new-password", "", true)}
+            {provider === "email" && renderInputField("confirmPassword", true, "Confirm Password", "password", "new-password", "", true)}
             {renderInputField("phone", true, "Phone Number", "tel", "tel")}
             {renderInputField("dob", true, "Date of Birth", "date", "bday")}
-
+  
             {/* User Type section */}
             <div className="">
               <label htmlFor="userType" className="block text-sm font-medium leading-6 text-gray-900">
@@ -546,14 +664,14 @@ export default function Page() {
               {renderFileInput("school.proof", true, "Offer letter/ Registration Card/ Proof", schoolProofUrl)}
               {renderInputField("expiry", true, "Proof Expiry Date", "date", "off", "school")}
             </div>)}
-
+  
             {/* conditional fields for pension user */}
             {formik.values.userType === "pension" && (<div className="md:col-span-2 border p-6 rounded-lg shadow-sm bg-green-50 space-y-1">
               <h3 className="md:col-span-2 font-semibold text-gray-800 uppercase">Pension User Details</h3>
               {renderFileInput("nationalIdProof", true, "National ID Proof", nationalIdProofUrl)}
             </div>)}
-
-
+  
+  
             {/* Address fields */}
             <h3 className="md:col-span-2 font-semibold text-gray-300 pt-4 uppercase">Address Information</h3>
             {renderInputField("addressLine1", true, "Address Line 1", "text", "address-line1", "address")}
@@ -591,7 +709,7 @@ export default function Page() {
                 </div>
               ) : null}
             </div>
-
+  
             {/* address.country- future purpose */}
             {/* <div>
               <label htmlFor="address.country" className="block text-sm font-medium leading-6 text-gray-900">
@@ -624,34 +742,45 @@ export default function Page() {
                   {formik.errors.address.country}
                 </div>
               ) : null}
-            </div> */}
-
+            </div>  */}
+  
             {renderInputField("zipCode", true, "Zip / Postal Code", "text", "postal-code", "address")}
-            
+              
             {/* Sign up button */}
             <div className="col-span-full">
               <button
                 type="submit"
+                disabled={formik.isSubmitting}
                 className="flex w-full justify-center rounded-md bg-indigo-600 p-3 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 max-w-lg mx-auto"
               >
-                Sign up
+                Update
               </button>
             </div>
           </form>
-
-          {/* Login Link */}
-          <p className="mt-4 text-center text-sm text-gray-500">
-            Already have an Account?{" "}
-            <a
-              href="/auth/login"
-              className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500"
-            >
-              Login
-            </a>
-          </p>
+  
+          
         </div>
       </div>
       <ToastContainer />
     </div>
   );
+
 }
+      // <div className="flex justify-center space-x-4">
+      //   <button
+      //     onClick={handleSave}
+      //     className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center justify-center"
+      //     disabled={isSaving}
+      //   >
+      //     {isSaving ? <ClipLoader size={20} color="#ffffff" /> : "Save"}
+      //   </button>
+      //   <button
+      //     onClick={handleCancel}
+      //     className="px-4 py-2 bg-gray-300 text-black rounded-md hover:bg-gray-400"
+      //     disabled={isSaving}
+      //   >
+      //     Cancel
+      //   </button>
+      // </div>
+
+export default EditProfile

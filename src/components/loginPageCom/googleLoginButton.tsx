@@ -1,17 +1,12 @@
 "use client";
 
-import React from "react";
+import { gSignInWithOAuth } from "@/utils/actions/storage";
 import { Icon } from "@iconify/react";
-import { supabase } from "@/lib/supabase";
 
 export default function GoogleLoginButton() {
   const googleLogin = async () => {
-    let result = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        // redirectTo: `http://example.com/auth/callback`,
-      },
-    });
+    const url = await gSignInWithOAuth();
+    window.location.href = url || "/auth/login";
   };
 
   return (
