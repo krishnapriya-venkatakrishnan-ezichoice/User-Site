@@ -111,6 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!user?.id) return;
 
       const { avatarUrl, userType } = await getAvatarUrl(user?.id!);
+      
       if (userType)
         setIsProfileCompleted(true);
 
@@ -123,9 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       if (isLoggedIn) {
-        if (!userImg) {
-          setUserImg(avatarUrl && avatarUrl !== "" ? avatarUrl : "/profile.png");
-        }
+        setUserImg(avatarUrl && avatarUrl !== "" ? avatarUrl : "/profile.png");
       }
     }
 
