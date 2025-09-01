@@ -56,14 +56,14 @@ export async function signUpWithCredentials(formData: FormData, currentCountryCo
   // unique id for the temporary folder
   const tempUserId = Math.random().toString(36).substring(2);
 
-  // upload files to temp-file-uploads bucket
+  // upload files to profiles bucket
   const uploadedFiles = [];
   try {
     // Add user profile picture
     if (profilePic instanceof File){
-        const filePath = `profile-pics/${tempUserId}/${profilePic.name}`;
+        const filePath = `temp-file-uploads/profile-pics/${tempUserId}/${profilePic.name}`;
         const {data: uploadData, error: uploadError} = await supabaseAdmin.storage
-          .from("temp-file-uploads")
+          .from("profiles")
           .upload(filePath, profilePic);
       
       if (uploadError)
@@ -74,9 +74,9 @@ export async function signUpWithCredentials(formData: FormData, currentCountryCo
     // Add student proof upload if userType is 'student' and file exists
     if (userType === 'student' && Array.isArray(studentProof) && studentProof.length > 0){
       for (const file of studentProof) {
-        const filePath = `student-proofs/${tempUserId}/${file.name}`;
+        const filePath = `temp-file-uploads/student-proofs/${tempUserId}/${file.name}`;
         const {data: uploadData, error: uploadError} = await supabaseAdmin.storage
-          .from("temp-file-uploads")
+          .from("profiles")
           .upload(filePath, file);
           
         if (uploadError)
@@ -89,9 +89,9 @@ export async function signUpWithCredentials(formData: FormData, currentCountryCo
     // Add National ID proof upload if userType is 'pension' and file exists
     if (userType === 'pension' && Array.isArray(nationalIdProof) && nationalIdProof.length > 0){
       for (const file of nationalIdProof) {
-        const filePath = `national-id-proofs/${tempUserId}/${file.name}`;
+        const filePath = `temp-file-uploads/national-id-proofs/${tempUserId}/${file.name}`;
         const {data: uploadData, error: uploadError} = await supabaseAdmin.storage
-          .from("temp-file-uploads")
+          .from("profiles")
           .upload(filePath, file);
           
         if (uploadError)
@@ -158,15 +158,15 @@ export async function moveTempToPermStorage(supabase: SupabaseClient) : Promise<
   
     const moveAndSignPromises = tempFilePaths.map(async (tempPath: string) => {
 
-      let destinationBucket: string;
+      let destinationFolder: string;
 
       // determine the destination bucket based on the temporary path.
-      if (tempPath.startsWith("profile-pics"))
-        destinationBucket = "profile-pics";
-      else if (tempPath.startsWith("student-proofs"))
-        destinationBucket = "student-proofs";
-      else if (tempPath.startsWith("national-id-proofs"))
-        destinationBucket = "national-id-proofs";
+      if (tempPath.includes("/profile-pics/"))
+        destinationFolder = "profile-pics";
+      else if (tempPath.includes("/student-proofs/"))
+        destinationFolder = "student-proofs";
+      else if (tempPath.includes("/national-id-proofs/"))
+        destinationFolder = "national-id-proofs";
       else {
         console.warn(`File with unknown path pattern found: ${tempPath}. Skipping.`);
         return null;
@@ -174,21 +174,19 @@ export async function moveTempToPermStorage(supabase: SupabaseClient) : Promise<
 
       // construct the new path in the permanent bucket using the user's ID.
       const fileName = tempPath.split("/").pop();
-      const newPath = `${user.id}/${fileName}`;
+      const newPath = `${destinationFolder}/${user.id}/${fileName}`;
       
       // move the file from the temporary bucket to the correct permanent bucket
       
       const { error: moveError } = await supabaseAdmin.storage
-        .from(`temp-file-uploads`)
-        .move(tempPath, newPath, {
-          destinationBucket: destinationBucket
-        });
+        .from(`profiles`)
+        .move(tempPath, newPath);
 
       if (moveError)
         throw new Error(`Failed to move file ${tempPath}: ${moveError.message}`);
 
       const { data: publicUrlData } = await supabaseAdmin.storage
-        .from(destinationBucket)
+        .from(`profiles`)
         .getPublicUrl(newPath);
 
       return {
@@ -215,18 +213,18 @@ export async function moveTempToPermStorage(supabase: SupabaseClient) : Promise<
     }
 
     for (const result of results) {
-      if (result.path.startsWith("profile-pics"))
+      if (result.path.includes("/profile-pics/"))
         permanentFileUrls.profilePicUrl = result.url;
-      if (result.path.startsWith("student-proofs"))
+      if (result.path.includes("/student-proofs/"))
         permanentFileUrls.studentProofUrls?.push(result.url);
-      if (result.path.startsWith("national-id-proofs"))
+      if (result.path.includes("/national-id-proofs/"))
         permanentFileUrls.nationalIdProofUrls?.push(result.url);
     }
     
     
     // Delete the temporary folder
     await supabaseAdmin.storage
-      .from("temp-file-uploads")
+      .from("profiles")
       .remove(tempFilePaths);
 
     // update the profiles table with the new URLs
@@ -291,17 +289,17 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
         const userId = urlParts.pop();
 
         const { error } = await supabaseSession.storage
-          .from("profile-pics")
-          .remove([`${userId}/${fileName}`]);
+          .from("profiles")
+          .remove([`profile-pics/${userId}/${fileName}`]);
 
         if (error)
           throw new Error(`Error removing file: ${error.message}`);
       }
 
-      const filePath = `${userId}/${profilePic.name}`;
+      const filePath = `profile-pics/${userId}/${profilePic.name}`;
         
       const { error: uploadError} = await supabaseSession.storage
-        .from("profile-pics")
+        .from("profiles")
         .upload(filePath, profilePic, {
           upsert: true,
         });
@@ -310,7 +308,7 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
         throw uploadError;
 
       const { data: { publicUrl } } = supabaseSession.storage
-      .from("profile-pics")
+      .from("profiles")
       .getPublicUrl(filePath)
           
       finalUrls.push(publicUrl);
@@ -326,8 +324,8 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
         const userId = urlParts.pop();
 
         const { error } = await supabaseSession.storage
-          .from("profile-pics")
-          .remove([`${userId}/${fileName}`]);
+          .from("profiles")
+          .remove([`profile-pics/${userId}/${fileName}`]);
 
         if (error)
           throw new Error(`Error removing file: ${error.message}`);
@@ -347,8 +345,8 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
           const userId = proofUrlParts.pop();
 
           const { error } = await supabaseSession.storage
-            .from("student-proofs")
-            .remove([`${userId}/${fileName}`]);
+            .from("profiles")
+            .remove([`student-proofs/${userId}/${fileName}`]);
 
           if (error)
             throw new Error(`Error removing file: ${error.message}`);
@@ -359,9 +357,9 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
       for (const fileOrUrl of studentProof) {
         
         if (fileOrUrl instanceof File) {
-          const filePath = `${userId}/${fileOrUrl.name}`;
+          const filePath = `student-proofs/${userId}/${fileOrUrl.name}`;
           const { error: uploadError } = await supabaseSession.storage
-            .from("student-proofs")
+            .from("profiles")
             .upload(filePath, fileOrUrl, {
               upsert: true
             });
@@ -370,7 +368,7 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
             throw uploadError;
             
           const { data: { publicUrl } } = supabaseSession.storage
-          .from("student-proofs")
+          .from("profiles")
           .getPublicUrl(filePath)
         
           finalUrls.push(publicUrl);
@@ -393,8 +391,8 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
           const userId = proofUrlParts.pop();
 
           const { error } = await supabaseSession.storage
-            .from("national-id-proofs")
-            .remove([`${userId}/${fileName}`]);
+            .from("profiles")
+            .remove([`national-id-proofs/${userId}/${fileName}`]);
 
           if (error)
             throw new Error(`Error removing file: ${error.message}`);
@@ -404,9 +402,9 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
 
       for (const fileOrUrl of nationalIdProof) {
         if (fileOrUrl instanceof File) {
-          const filePath = `${userId}/${fileOrUrl.name}`;
+          const filePath = `national-id-proofs/${userId}/${fileOrUrl.name}`;
           const { error: uploadError } = await supabaseSession.storage
-            .from("national-id-proofs")
+            .from("profiles")
             .upload(filePath, fileOrUrl, {
               upsert: true,
             });
@@ -415,7 +413,7 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
             throw uploadError;
             
           const { data: { publicUrl } } = await supabaseSession.storage
-          .from("national-id-proofs")
+          .from("profiles")
           .getPublicUrl(filePath)
         
           finalUrls.push(publicUrl);
@@ -434,8 +432,8 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
         const userId = proofUrlParts.pop();
 
         const { error } = await supabaseSession.storage
-          .from("student-proofs")
-          .remove([`${userId}/${fileName}`]);
+          .from("profiles")
+          .remove([`student-proofs/${userId}/${fileName}`]);
 
         if (error)
           throw new Error(`Error removing file: ${error.message}`);
@@ -448,9 +446,9 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
       studentProofUrls?: string[],
       nationalIdProofUrls?: string[],
     } = {
-      profilePicUrl: finalUrls.find(url => url.includes("profile-pics")),
-      studentProofUrls: finalUrls.filter(url => url.includes("student-proofs")),
-      nationalIdProofUrls: finalUrls.filter(url => url.includes("national-id-proofs")),
+      profilePicUrl: finalUrls.find(url => url.includes("/profile-pics/")),
+      studentProofUrls: finalUrls.filter(url => url.includes("/student-proofs/")),
+      nationalIdProofUrls: finalUrls.filter(url => url.includes("/national-id-proofs/")),
     }
 
    // update the profiles table with the new URLs
