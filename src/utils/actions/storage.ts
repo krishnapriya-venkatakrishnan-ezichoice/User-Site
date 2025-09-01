@@ -6,6 +6,21 @@ import { SupabaseClient } from '@supabase/supabase-js';
 
 const environment = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
+export const gSignInWithOAuth = async () => {
+  try {
+    const supabaseSession = await createSessionClient();
+    const { data } = await supabaseSession.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback`,
+      },
+    });
+    return data.url;
+  } catch(error: any) {
+    throw new Error("Google sign in failed ", error.message);
+  }
+}
+
 // This action's sole purpose is to sign up the user and store the files in a temporary bucket. It also passes a reference to these files through the email redirect URL.
 
 export async function signUpWithCredentials(formData: FormData, currentCountryCode: string) : Promise<boolean> {
@@ -100,6 +115,8 @@ export async function signUpWithCredentials(formData: FormData, currentCountryCo
         // temporary bucket files
         temp_file_paths: uploadedFiles,
 
+        email: email,
+        password: password,
         full_name: fullName,
         phone_number: phone,
         user_type: userType,
@@ -170,17 +187,14 @@ export async function moveTempToPermStorage(supabase: SupabaseClient) : Promise<
       if (moveError)
         throw new Error(`Failed to move file ${tempPath}: ${moveError.message}`);
 
-      const { data: signedUrlData, error: signedUrlError } = await supabaseAdmin.storage
+      const { data: publicUrlData } = await supabaseAdmin.storage
         .from(destinationBucket)
-        .createSignedUrl(newPath, 60 * 60 * 24 * 7); // valid for 7 days newUrl is changed to moveUrl
+        .getPublicUrl(newPath);
 
-        if (signedUrlError)
-          throw new Error(`Failed to create signed URL for ${newPath}: ${signedUrlError.message}`);
-
-        return {
-          path: tempPath,
-          url: signedUrlData.signedUrl
-        }
+      return {
+        path: tempPath,
+        url: publicUrlData.publicUrl
+      }
     });
 
     // concurrently execute all move and sign operations
@@ -233,4 +247,244 @@ export async function moveTempToPermStorage(supabase: SupabaseClient) : Promise<
     console.error(err);
     throw err;
   }
+}
+
+export async function updateProfile(formData: FormData, currentCountryCode: string, userId: string, userData: Profile): Promise<boolean> {
+  const fullName = formData.get("fullName") as string;
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const phone = formData.get("phone") as string;
+        
+  const dob = formData.get("dob") as string || null;
+  const userType = formData.get("userType") as string;
+  const nationalId = formData.get("nationalId") as string;
+        
+  const addressLine1 = formData.get("addressLine1") as string;
+  const addressLine2 = formData.get("addressLine2") as string;
+  const city = formData.get("city") as string;
+  const country = formData.get("country") as string;
+  const zipCode = formData.get("zipCode") as string;
+        
+  const schoolName = formData.get("schoolName") as string;
+  const schoolId = formData.get("schoolId") as string;
+  const schoolExpiry = formData.get("schoolExpiry") as string;
+
+  // append files to FormData object
+  const profilePic = formData.get("profilePic");
+  const studentProof = formData.getAll("studentProof");
+  const nationalIdProof = formData.getAll("nationalIdProof");
+
+  // const supabaseSession = supabase;
+  const supabaseSession = await createSessionClient();
+  
+  // upload files to temp-file-uploads bucket
+  const finalUrls: string[] = [];
+  
+  try {
+    // Add user profile picture
+    if (profilePic instanceof File){
+      if (userData.avatar_url) {
+        // Delete the old profile pic from the storage.
+        const url = userData.avatar_url;
+        const urlParts = url.split("/");
+        const fileName = urlParts.pop();
+        const userId = urlParts.pop();
+
+        const { error } = await supabaseSession.storage
+          .from("profile-pics")
+          .remove([`${userId}/${fileName}`]);
+
+        if (error)
+          throw new Error(`Error removing file: ${error.message}`);
+      }
+
+      const filePath = `${userId}/${profilePic.name}`;
+        
+      const { error: uploadError} = await supabaseSession.storage
+        .from("profile-pics")
+        .upload(filePath, profilePic, {
+          upsert: true,
+        });
+
+      if (uploadError)
+        throw uploadError;
+
+      const { data: { publicUrl } } = supabaseSession.storage
+      .from("profile-pics")
+      .getPublicUrl(filePath)
+          
+      finalUrls.push(publicUrl);
+        
+    } else if (typeof profilePic === "string") {
+      finalUrls.push(profilePic);
+    } else {
+      if (userData.avatar_url) {
+        // Delete the old profile pic from the storage.
+        const url = userData.avatar_url;
+        const urlParts = url.split("/");
+        const fileName = urlParts.pop();
+        const userId = urlParts.pop();
+
+        const { error } = await supabaseSession.storage
+          .from("profile-pics")
+          .remove([`${userId}/${fileName}`]);
+
+        if (error)
+          throw new Error(`Error removing file: ${error.message}`);
+      }
+    }
+    
+
+    // Add student proof upload if userType is 'student' and file exists
+    if (userType === 'student' && studentProof.length > 0){
+      if (userData.student_proof_url && userData.student_proof_url.length > 0) {
+        for (const proofUrl of userData.student_proof_url) {
+          if (studentProof.includes(proofUrl))
+            continue;
+
+          const proofUrlParts = proofUrl.split("/");
+          const fileName = proofUrlParts.pop();
+          const userId = proofUrlParts.pop();
+
+          const { error } = await supabaseSession.storage
+            .from("student-proofs")
+            .remove([`${userId}/${fileName}`]);
+
+          if (error)
+            throw new Error(`Error removing file: ${error.message}`);
+        }
+        
+      }
+
+      for (const fileOrUrl of studentProof) {
+        
+        if (fileOrUrl instanceof File) {
+          const filePath = `${userId}/${fileOrUrl.name}`;
+          const { error: uploadError } = await supabaseSession.storage
+            .from("student-proofs")
+            .upload(filePath, fileOrUrl, {
+              upsert: true
+            });
+            
+          if (uploadError)
+            throw uploadError;
+            
+          const { data: { publicUrl } } = supabaseSession.storage
+          .from("student-proofs")
+          .getPublicUrl(filePath)
+        
+          finalUrls.push(publicUrl);
+        } else if (typeof fileOrUrl === "string") {
+          finalUrls.push(fileOrUrl);
+        }
+      }
+    };
+
+    // Add National ID proof upload if userType is 'pension' and file exists
+    if (userType === 'pension' && nationalIdProof.length > 0){
+      
+      if (userData.national_id_proof_url && userData.national_id_proof_url.length > 0) {
+        for (const proofUrl of userData.national_id_proof_url) {
+          if (nationalIdProof.includes(proofUrl))
+            continue;
+
+          const proofUrlParts = proofUrl.split("/");
+          const fileName = proofUrlParts.pop();
+          const userId = proofUrlParts.pop();
+
+          const { error } = await supabaseSession.storage
+            .from("national-id-proofs")
+            .remove([`${userId}/${fileName}`]);
+
+          if (error)
+            throw new Error(`Error removing file: ${error.message}`);
+        }
+        
+      }
+
+      for (const fileOrUrl of nationalIdProof) {
+        if (fileOrUrl instanceof File) {
+          const filePath = `${userId}/${fileOrUrl.name}`;
+          const { error: uploadError } = await supabaseSession.storage
+            .from("national-id-proofs")
+            .upload(filePath, fileOrUrl, {
+              upsert: true,
+            });
+            
+          if (uploadError)
+            throw uploadError;
+            
+          const { data: { publicUrl } } = await supabaseSession.storage
+          .from("national-id-proofs")
+          .getPublicUrl(filePath)
+        
+          finalUrls.push(publicUrl);
+        } else if (typeof fileOrUrl === "string") {
+          finalUrls.push(fileOrUrl);
+        }
+      }
+    };
+    
+    // Scenario: Once student, then post completion of the course, the user comes under general type.
+    if (userType === "general" && userData.student_proof_url && userData.student_proof_url.length > 0) {
+      // Delete the student proof
+      for (const proofUrl of userData.student_proof_url) {
+        const proofUrlParts = proofUrl.split("/");
+        const fileName = proofUrlParts.pop();
+        const userId = proofUrlParts.pop();
+
+        const { error } = await supabaseSession.storage
+          .from("student-proofs")
+          .remove([`${userId}/${fileName}`]);
+
+        if (error)
+          throw new Error(`Error removing file: ${error.message}`);
+      }
+    }
+    
+
+    const permanentFileUrls: {
+      profilePicUrl?: string,
+      studentProofUrls?: string[],
+      nationalIdProofUrls?: string[],
+    } = {
+      profilePicUrl: finalUrls.find(url => url.includes("profile-pics")),
+      studentProofUrls: finalUrls.filter(url => url.includes("student-proofs")),
+      nationalIdProofUrls: finalUrls.filter(url => url.includes("national-id-proofs")),
+    }
+
+   // update the profiles table with the new URLs
+    const {data, error: updateError} = await supabaseSession
+      .from("profiles")
+      .update({
+        full_name: fullName,
+        email: email,
+        password: password,
+        phone_number: phone,
+        user_type: userType,
+        date_of_birth: dob ? new Date(dob).toISOString() : null,
+        national_id: nationalId || null,
+        address_line1: addressLine1,
+        address_line2: addressLine2,
+        city: city,
+        zip_code: zipCode,
+        country: currentCountryCode,
+        school_name: userType === 'student' ? schoolName : null,
+        school_id: userType === 'student' ? schoolId : null,
+        school_expiry: userType === 'student' ? schoolExpiry : null,
+        avatar_url: permanentFileUrls.profilePicUrl || (typeof profilePic === "string" && profilePic) || null,
+        student_proof_url: userType === 'student' && permanentFileUrls.studentProofUrls && permanentFileUrls.studentProofUrls.length > 0 ? permanentFileUrls.studentProofUrls : null,
+        national_id_proof_url: userType === 'pension' && permanentFileUrls.nationalIdProofUrls && permanentFileUrls.nationalIdProofUrls.length > 0 ? permanentFileUrls.nationalIdProofUrls : null,
+      })
+      .eq("id", userId);
+
+    if (updateError)
+      throw updateError;
+
+    return true;
+  } catch(error: any) {
+    console.error("Profile update failed: ", error)
+    throw new Error(`Profile update failed: ${error.message}`);
+  }
+  
 }

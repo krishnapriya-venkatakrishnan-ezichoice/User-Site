@@ -24,6 +24,11 @@ interface AuthContextType {
   checkUserSession: () => Promise<void>;
   handleSignOut: () => Promise<void>;
   setUserImg: React.Dispatch<React.SetStateAction<string>>;
+
+  isProfileCompleted: boolean;
+  provider: string;
+  socialUserImg: string;
+  setIsUserUpdated: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,8 +39,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [userImg, setUserImg] = useState<string>("");
+  const [socialUserImg, setSocialUserImg] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
-
+  const [isProfileCompleted, setIsProfileCompleted] = useState<boolean>(false);
+  const [isUserUpdated, setIsUserUpdated] = useState<boolean>(false);
+  const [provider, setProvider] = useState<string>("");
+  
   useEffect(() => {
     const {
       data: { subscription },
@@ -44,9 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoggedIn(true);
         const details = transformUserToUserDetails(session.user);
         setUserDetails(details);
+        setProvider(session.user.app_metadata.provider || "");
         if (session.user.app_metadata.provider !== "email") {
           const avatarUrl = session.user.user_metadata.avatar_url;
-          setUserImg(avatarUrl && avatarUrl !== "" ? avatarUrl : "/profile.png");
+          setSocialUserImg(avatarUrl && avatarUrl !== "" ? avatarUrl : "/profile.png");
         }
       } else {
         setIsLoggedIn(false);
@@ -70,7 +80,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const {
           data: { user },
         } = await supabase.auth.getUser();
-        
       return user;
     }
 
@@ -78,33 +87,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       const { data, error } = await supabase
         .from("profiles")
-        .select("avatar_url")
+        .select("avatar_url, user_type")
         .eq("id", userId)
         .single();
 
       if (error) {
-        console.error("Error fetching avatar_url");
-        return null;
+        console.error("Error fetching avatar_url: ", error);
+        return {
+          avatarUrl: null,
+          userType: null,
+        };
       }
 
-      return data?.avatar_url;
+      return {
+        avatarUrl: data?.avatar_url,
+        userType: data.user_type,
+      }
     }
 
     const fetchAndSetAvatarUrl = async () => {
       const user = await getUser();
+      
+      if (!user?.id) return;
 
-      if (user?.app_metadata.provider !== "email")
+      const { avatarUrl, userType } = await getAvatarUrl(user?.id!);
+      if (userType)
+        setIsProfileCompleted(true);
+
+      if (user?.app_metadata.provider !== "email") {
+        if (avatarUrl) 
+          setUserImg(avatarUrl);
+        else
+          setUserImg(socialUserImg);
         return
+      }
 
-      if (isLoggedIn && !userImg) {
-        const avatarUrl = await getAvatarUrl(user?.id!);
-        setUserImg(avatarUrl && avatarUrl !== "" ? avatarUrl : "/profile.png");
+      if (isLoggedIn) {
+        if (!userImg) {
+          setUserImg(avatarUrl && avatarUrl !== "" ? avatarUrl : "/profile.png");
+        }
       }
     }
 
     fetchAndSetAvatarUrl();
 
-  }, [isLoggedIn, userImg]);
+  }, [isLoggedIn, userImg, isProfileCompleted, isUserUpdated, socialUserImg]);
 
   const fetchUserProfile = async (userId: string): Promise<any | null> => {
     const { data, error } = await supabase
@@ -140,8 +167,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsLoggedIn(true);
       const transformedDetails = transformUserToUserDetails(user);
       setUserDetails(transformedDetails);
-      if (user.app_metadata.provider !== "email")
-        setUserImg(user.user_metadata.avatar_url || "/profile.png");
 
       const profileData = await fetchUserProfile(user.id);
       if (profileData) {
@@ -201,6 +226,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         loading,
         checkUserSession,
         handleSignOut,
+        isProfileCompleted,
+        provider,
+        socialUserImg,
+        setIsUserUpdated
       }}
     >
       {children}
