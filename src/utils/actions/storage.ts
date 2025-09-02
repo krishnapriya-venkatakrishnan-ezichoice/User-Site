@@ -30,7 +30,7 @@ export async function signUpWithCredentials(formData: FormData, currentCountryCo
   const password = formData.get("password") as string;
   const phone = formData.get("phone") as string;
         
-  const dob = formData.get("dob") as string || null;
+  const dob = formData.get("dob") as string;
   const userType = formData.get("userType") as string;
   const nationalId = formData.get("nationalId") as string;
         
@@ -45,9 +45,9 @@ export async function signUpWithCredentials(formData: FormData, currentCountryCo
   const schoolExpiry = formData.get("schoolExpiry") as string;
 
   // append files to FormData object
-  const profilePic = formData.get("profilePic") as File || null;
-  const studentProof = formData.getAll("studentProof") as File[] || null;
-  const nationalIdProof = formData.getAll("nationalIdProof") as File[] || null;
+  const profilePic = formData.get("profilePic") as File;
+  const studentProof = formData.getAll("studentProof") as File[];
+  const nationalIdProof = formData.getAll("nationalIdProof") as File[];
 
   // use the admin client to upload files to the temporary bucket.
   const supabaseAdmin = await createAdminClient();
@@ -120,7 +120,7 @@ export async function signUpWithCredentials(formData: FormData, currentCountryCo
         full_name: fullName,
         phone_number: phone,
         user_type: userType,
-        date_of_birth: dob ? new Date(dob)?.toISOString() : null,
+        date_of_birth: dob,
         national_id: nationalId || null,
         address_line1: addressLine1,
         address_line2: addressLine2,
@@ -253,7 +253,7 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
   const password = formData.get("password") as string;
   const phone = formData.get("phone") as string;
         
-  const dob = formData.get("dob") as string || null;
+  const dob = formData.get("dob") as string;
   const userType = formData.get("userType") as string;
   const nationalId = formData.get("nationalId") as string;
         
@@ -268,9 +268,9 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
   const schoolExpiry = formData.get("schoolExpiry") as string;
 
   // append files to FormData object
-  const profilePic = formData.get("profilePic");
-  const studentProof = formData.getAll("studentProof");
-  const nationalIdProof = formData.getAll("nationalIdProof");
+  const profilePic = formData.get("profilePic") as File|string;
+  const studentProof = formData.getAll("studentProof") as (File|string)[];
+  const nationalIdProof = formData.getAll("nationalIdProof") as (File|string)[];
 
   // const supabaseSession = supabase;
   const supabaseSession = await createSessionClient();
@@ -460,7 +460,7 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
         password: password,
         phone_number: phone,
         user_type: userType,
-        date_of_birth: dob ? new Date(dob).toISOString() : null,
+        date_of_birth: dob,
         national_id: nationalId || null,
         address_line1: addressLine1,
         address_line2: addressLine2,
