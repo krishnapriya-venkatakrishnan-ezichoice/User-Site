@@ -53,6 +53,24 @@ export async function signUpWithCredentials(formData: FormData, currentCountryCo
   const supabaseAdmin = await createAdminClient();
   const supabaseSession = await createSessionClient();
   
+  try {
+    // check if the user already exists or not
+    const { data: existingUser, error: existingUserError } = await supabaseAdmin
+      .from("profiles")
+      .select("email")
+      .eq("email", email)
+      .single();
+    
+    if (existingUser?.email)
+      throw new Error("The email is already registered!");
+
+    if (existingUserError && existingUserError.code !== "PGRST116")
+      throw new Error("Error happened while checking for existing user!");
+  } catch (error: any) {
+    console.error("The email is already registered!");
+    throw new Error("The email is already registered!");
+  }
+
   // unique id for the temporary folder
   const tempUserId = Math.random().toString(36).substring(2);
 
