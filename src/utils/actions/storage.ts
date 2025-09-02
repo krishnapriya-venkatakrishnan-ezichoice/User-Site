@@ -134,7 +134,6 @@ export async function signUpWithCredentials(formData: FormData, currentCountryCo
         temp_file_paths: uploadedFiles,
 
         email: email,
-        password: password,
         full_name: fullName,
         phone_number: phone,
         user_type: userType,
@@ -268,7 +267,6 @@ export async function moveTempToPermStorage(supabase: SupabaseClient) : Promise<
 export async function updateProfile(formData: FormData, currentCountryCode: string, userId: string, userData: Profile): Promise<boolean> {
   const fullName = formData.get("fullName") as string;
   const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
   const phone = formData.get("phone") as string;
         
   const dob = formData.get("dob") as string;
@@ -475,7 +473,6 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
       .update({
         full_name: fullName,
         email: email,
-        password: password,
         phone_number: phone,
         user_type: userType,
         date_of_birth: dob,

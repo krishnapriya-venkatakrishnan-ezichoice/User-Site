@@ -4,6 +4,7 @@ import EditProfile from "@/components/profilePageCom/EditProfile";
 import { useAuth } from "@/context/authContext";
 import { supabase } from "@/lib/supabase";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import QRCode from "react-qr-code";
@@ -103,12 +104,18 @@ const ProfilePage: React.FC = () => {
 
         {/* Edit button (absolute in top-right) */}
         {!isEditing && (
-          <button
-            onClick={handleEditClick}
-            className="absolute top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 z-10"
-          >
-            Edit Profile
-          </button>
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-4 justify-center">
+            <button
+              onClick={handleEditClick}
+              className=" bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 "
+            >
+              Edit Profile
+            </button>
+            {provider === "email" && <Link
+            href="/auth/forgot-password?from=profile_page"
+            className=" bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 "
+            >Change password</Link>}
+          </div>
         )}
 
         {/* Profile Content */}

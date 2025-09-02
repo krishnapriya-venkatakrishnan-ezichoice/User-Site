@@ -41,7 +41,6 @@ const EditProfile = (
   const [profile, setProfile] = useState<Profile | null>(null);
 
   const [defaultValues, setDefaultValues] = useState<editFormType>(editFormInitialValues);
-  const [showPassword, setShowPassword] = useState(false);
   
   const [cities, setCities] = useState([...getCities("all")]); // used in City dropdown
   
@@ -68,7 +67,6 @@ const EditProfile = (
         const formData = new FormData();
         formData.append("fullName", values.fullName);
         formData.append("email", values.email);
-        formData.append("password", values.password);
         formData.append("phone", values.phone);
         if (values.dob)
           formData.append("dob", values.dob?.toISOString());
@@ -166,6 +164,7 @@ const EditProfile = (
     };
   
     fetchUserProfile();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   // useEffect-2: Populate city, phone code when country is changed
@@ -236,6 +235,7 @@ const EditProfile = (
         setImagePreviewUrl(socialUserImg);
     }
   
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formik.values.profilePic]);
   
   // useEffect-6: To render the school proof
@@ -437,7 +437,6 @@ const EditProfile = (
     type: string = 'text',
     autoComplete: string = 'off',
     path: string = '',
-    isPassword?: boolean
   ) => {
     const formikFieldName = path ? `${path}.${id}` : id;
     const value = formik.getFieldProps(formikFieldName).value;
@@ -446,7 +445,7 @@ const EditProfile = (
 
     const inputClasses = `block w-full rounded-md border-0 p-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 ${touched && error ? "ring-red-500": ""}`;
 
-    const inputType = isPassword ? (showPassword ? 'text': 'password') : type;
+    const inputType = type;
 
     const datePickerMinDate = formikFieldName === "school.expiry" ? new Date() : undefined;
     const datePickerMaxDate = formikFieldName === "dob" ? new Date() : undefined;
@@ -508,23 +507,9 @@ const EditProfile = (
               onBlur={formik.handleBlur}
               value={value}
               autoComplete={autoComplete}
-              className={`${inputClasses} ${isPassword ? "hide-password-toggle": ""}`}
+              className={`${inputClasses}`}
               disabled={autoComplete === "email"}
             />
-            {isPassword && (
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className={`px-2 py-1.5 flex items-center text-gray-400 focus:outline-none`}
-              >
-                {showPassword ? (
-                  <Icon icon="bi:eye-slash" className="text-2xl"/>
-                ): (
-                  <Icon icon="bi:eye" className="text-2xl" />
-                )}
-              </button>
-            
-            )}
             </div>
           )}
           
@@ -617,8 +602,6 @@ const EditProfile = (
             <h3 className="md:col-span-2 font-semibold text-gray-300 pt-4 uppercase">Basic Information</h3>
             {renderInputField("fullName", true, "Full Name", "text", "name")}
             {renderInputField("email", true, "Email Address", "email", "email")}
-            {provider === "email" && renderInputField("password", true, "Password", "password", "new-password", "", true)}
-            {provider === "email" && renderInputField("confirmPassword", true, "Confirm Password", "password", "new-password", "", true)}
             {renderInputField("phone", true, "Phone Number", "tel", "tel")}
             {renderInputField("dob", true, "Date of Birth", "date", "bday")}
   
