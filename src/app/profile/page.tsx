@@ -19,7 +19,7 @@ interface Profile {
 
 const ProfilePage: React.FC = () => {
   const router = useRouter();
-  const { userImg, provider } = useAuth();
+  const { userImg, provider, type } = useAuth();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -136,6 +136,15 @@ const ProfilePage: React.FC = () => {
               </div>
             
               <div className="text-center">
+                <span className="w-auto border-2 bg-blue-600 text-white px-2 py-1 rounded-md mb-2 text-sm">
+                  {
+                  type === "pension" ?
+                    "PENSIONER" :
+                    type === "student" ?
+                    "STUDENT" :
+                    "FREE USER"
+                  }
+                </span>
                 <h1 className="text-2xl font-bold">
                   {profile?.full_name || "Unnamed User"}
                 </h1>
