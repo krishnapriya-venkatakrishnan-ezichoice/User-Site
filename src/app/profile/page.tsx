@@ -107,14 +107,21 @@ const ProfilePage: React.FC = () => {
           <div className="absolute top-4 right-4 z-10 flex items-center gap-4 justify-center">
             <button
               onClick={handleEditClick}
-              className=" bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 "
+              className="text-white hover:underline"
             >
               Edit Profile
             </button>
-            {provider === "email" && <Link
-            href="/auth/forgot-password?from=profile_page"
-            className=" bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 "
-            >Change password</Link>}
+            {provider === "email" && (
+              <>
+              <p className="text-white">|</p>
+              <Link
+              href="/auth/forgot-password?from=profile_page"
+              className="text-white hover:underline"
+              >
+                Change Password
+              </Link>
+              </>
+              )}
           </div>
         )}
 
