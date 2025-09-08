@@ -2,7 +2,6 @@
 
 import { Icon } from "@iconify/react";
 import { useFormik } from "formik";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import DatePicker from "react-datepicker";
@@ -10,10 +9,11 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { calculateAge, getCities, getCountryData } from "@/utils";
-import { GENERAL_SUPPORTED_FORMATS, IMAGE_SUPPORTED_FORMATS } from "@/utils/constants";
+import { GENERAL_SUPPORTED_FORMATS } from "@/utils/constants";
 import { createRegistrationValidationSchema, registrationFormInitialValues, registrationFormType } from "@/utils/schemas/registrationForm";
 import "react-datepicker/dist/react-datepicker.css";
 
+import EditProfileImage from "@/components/profilePageCom/EditProfileImage";
 import { signUpWithCredentials } from "@/utils/actions/storage";
 import Link from "next/link";
 
@@ -224,6 +224,18 @@ export default function Page() {
 
   }, [formik.values.nationalIdProof]);
 
+  const setProfilePic = async (profilePic: File | string| null) => {
+    formik.setFieldValue("profilePic", profilePic);
+    formik.setTouched({profilePic: true});
+    setTimeout(() => {
+      formik.validateField("profilePic")
+    }, 0);
+      
+  }
+  
+  const blurProfilePic = (event: React.FocusEvent<HTMLInputElement>) => {
+    formik.handleBlur(event);
+  }
 
   // Helper function for rendering file input sections
   const renderFileInput = (
@@ -449,44 +461,14 @@ export default function Page() {
             
             {/* Profile picture */}
             <div className="md:col-span-2 flex flex-col items-center">
-              <label htmlFor="profilePic" className="relative w-32 h-32 md:w-48 md:h-48 mx-auto rounded-full overflow-hidden bg-gray-100 border-4 border-transparent hover:border-indigo-600 group cursor-pointer flex items-center justify-center transition-all duration-300">
-                <input
-                  id="profilePic"
-                  name="profilePic"
-                  type="file"
-                  accept={IMAGE_SUPPORTED_FORMATS.join(",")}
-                  onChange={(event) => {
-                    const file = event.currentTarget.files ? event.currentTarget.files[0] : null
-                    formik.setFieldValue("profilePic", file);
-                    setTimeout(() => {
-                      formik.validateField("profilePic")
-                    }, 0);
-                  }}
-                  onBlur={formik.handleBlur}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+              <div className="flex flex-col items-center gap-2">
+                <EditProfileImage 
+                  prevProfile={null}
+                  setProfilePic={setProfilePic}
+                  blurProfilePic={blurProfilePic}
+                  imagePreviewUrl={imagePreviewUrl}
                 />
-
-                {
-                  imagePreviewUrl ? (
-                    <Image
-                    src={imagePreviewUrl}
-                    alt="Profile preview"
-                    width={32}
-                    height={32}
-                    className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 group-hover:hidden">
-                      <Icon icon="bi:person" className="text-4xl" />
-                    </div>
-                  )
-                }
-                  
-                <div className="absolute inset-0 hidden group-hover:flex items-center justify-center text-gray-400 text-sm font-semiboild opactiy-0 group-hover:opacity-100 group-hover:bg-opacity-50 transition-opacity duration-300">
-                    <Icon icon="bi:camera-fill" className="text-4xl" />
-                </div>
-              </label>
-          
+              </div>
               {formik.touched.profilePic && formik.errors.profilePic ? (
                 <div className="mt-1 text-sm text-red-600">
                   {formik.errors.profilePic}

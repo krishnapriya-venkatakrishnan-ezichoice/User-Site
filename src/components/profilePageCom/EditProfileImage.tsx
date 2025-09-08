@@ -46,15 +46,23 @@ const EditProfileImage = ({ prevProfile, setProfilePic, blurProfilePic, imagePre
   // Refer the input element
   const inputFileRef = useRef<HTMLInputElement>(null);
 
+  const [croppedImageUrl, setCroppedImageUrl] = useState<string | null>(null);
 
   // Set the parent state value with the file selected
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files ? event.currentTarget.files[0] : null;
-    setProfilePic(file);
+    
     clearCropStates();
 
-    if (file)
-      setCropping(true);
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCroppedImageUrl(reader.result as string);
+        setCropping(true);
+      }
+      reader.readAsDataURL(file);
+    }
+
     
   }
 
@@ -117,15 +125,12 @@ const EditProfileImage = ({ prevProfile, setProfilePic, blurProfilePic, imagePre
     });
   }
 
-  // const handleAlert = () => {
   useEffect(() => {
     if (!cancelOrDelete) return;
 
     if (inputFileRef.current)
       inputFileRef.current.value = "";
 
-    console.log("cancel or delete: ", cancelOrDelete, prevProfile);
-    debugger;
     if (cancelOrDelete === "delete")
       setProfilePic(null);
     else if (cancelOrDelete === "cancel")
@@ -135,8 +140,6 @@ const EditProfileImage = ({ prevProfile, setProfilePic, blurProfilePic, imagePre
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cancelOrDelete])
     
-  // }
-
   // When the cropping stops, the cropped area is set.
   const onCropComplete = (croppedAreaPercentage: Area, croppedAreaPixels: Area) => {
     setCroppedArea(croppedAreaPixels);
@@ -153,7 +156,7 @@ const EditProfileImage = ({ prevProfile, setProfilePic, blurProfilePic, imagePre
     });
 
   const getCroppedImage = async (croppedArea: Area, rotation: number) => {
-    const image = await createImage(imagePreviewUrl!);
+    const image = await createImage(croppedImageUrl!);
     const canvasEl = document.createElement("canvas");
     const ctx = canvasEl.getContext("2d");
 
@@ -211,29 +214,31 @@ const EditProfileImage = ({ prevProfile, setProfilePic, blurProfilePic, imagePre
     setZoom(1);
     setCropping(false);
     setRotation(0);
+    setCroppedImageUrl(null);
 
     setShowModal(false);
     setCancelOrDelete("");
   }
 
   const onCropSave = () => {
-    if (!croppedArea || !imagePreviewUrl) return;
-    console.log("on crop save is called");
-
+    if (!croppedArea || !croppedImageUrl) return;
+    
     try {
       const croppedImageBlob = getCroppedImage(croppedArea, rotation);
       if (croppedImageBlob) {
         croppedImageBlob.then((blob) => {
           const now = new Date();
-          const timestampString = now.toISOString();
+          const timestampString = now.toISOString().replace(/[:.]/g, "-").replace(/Z$/, "");
           const croppedFile = new File([blob as Blob], `${timestampString}.jpeg`, { type: "image/jpeg" });
           setProfilePic(croppedFile);
           setPrevSavedPhoto(croppedFile);
+          clearCropStates();
         }).catch((error) => {
           console.error("Error cropping image: ", error);
+          setProfilePic(null);
+          clearCropStates();
         });
       }
-      clearCropStates();
     } catch (error) {
       console.error("Error cropping image: ", error);
       setProfilePic(null);
@@ -251,7 +256,7 @@ const EditProfileImage = ({ prevProfile, setProfilePic, blurProfilePic, imagePre
             <div className="relative w-[450px] h-[350px] bg-gradient-to-r from-blue-500 to-indigo-500">
               <div>
               <Cropper
-                image={imagePreviewUrl!}
+                image={croppedImageUrl!}
                 aspect={aspectRatio}
                 crop={crop}
                 zoom={zoom}
@@ -327,7 +332,6 @@ const EditProfileImage = ({ prevProfile, setProfilePic, blurProfilePic, imagePre
                 </button>
               </div>
               <button type="button" onClick={handleCancelImage} className="absolute top-3 right-3 flex items-center justify-center gap-1 text-sm rounded-full">
-                {/* <Icon icon="bi:x-circle" className="text-xl text-red-500 hover:bg-red-200 rounded-full bg-white" /> */}
                 <span className="text-sm px-2 py-0.5 text-red-500 hover:bg-red-200 rounded-md bg-white">Cancel</span>
               </button>
             </div>
@@ -360,12 +364,12 @@ const EditProfileImage = ({ prevProfile, setProfilePic, blurProfilePic, imagePre
               
               <button type="button" onClick={() => setShowModal(true)} className="flex items-center justify-center gap-1 text-sm bg-gray-200 border border-black hover:bg-green-200 px-2 py-1 rounded-md">
                 <Icon icon="bi:upload" />
-                <span>Upload</span>
+                <span>Upload profile picture</span>
               </button>
-              <button type="button" onClick={handleClearImage} className="flex items-center justify-center gap-1 text-sm bg-gray-200 border border-black hover:bg-red-200 px-2 py-1 rounded-md">
+              {imagePreviewUrl && <button type="button" onClick={handleClearImage} className="flex items-center justify-center gap-1 text-sm bg-gray-200 border border-black hover:bg-red-200 px-2 py-1 rounded-md">
                 <Icon icon="bi:trash" />
                 <span>Delete</span>
-              </button>
+              </button>}
             </div>
             </>
           )

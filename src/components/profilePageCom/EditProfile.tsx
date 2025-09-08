@@ -491,7 +491,11 @@ const EditProfile = (
               maxDate={datePickerMaxDate}
               autoComplete={autoComplete}
               className={`${inputClasses} `}
-              disabled={profile?.date_of_birth ? true: false}
+              disabled={
+                formikFieldName === "dob" ? 
+                  profile?.date_of_birth ? true: false
+                : false
+              }
               />
           ) : type === "tel" ? (
             <div className="flex items-center">
@@ -520,7 +524,7 @@ const EditProfile = (
               value={value}
               autoComplete={autoComplete}
               className={`${inputClasses}`}
-              disabled={autoComplete === "email"}
+              disabled={formikFieldName === "email" || (profile?.user_type === "pension" && formikFieldName === "nationalId" ? true: false) || (profile?.user_type === "student" && formikFieldName === "school.id" ? true: false)}
             />
             </div>
           )}
