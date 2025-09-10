@@ -262,23 +262,7 @@ const ProfilePage: React.FC = () => {
                 {userEmail && (
                   <div className="flex flex-col items-center relative">
                     <div className="bg-white p-1 rounded-md relative group">
-                      <QRCode 
-                      value={JSON.stringify({ email: userEmail })} 
-                      size={26} 
-                      className="cursor-pointer" 
-                      onClick={showQRCode} 
-                      fgColor="#000000"
-                      bgColor="#ffffff"
-                      />
-
-                      {/* Top-left corner */}
-                      <div className="absolute top-0 left-0 w-1.5 h-1.5 border-t-2 border-l-2 border-indigo-500 group-hover:border-pink-600"></div>
-                      {/* Top-right corner */}
-                      <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t-2 border-r-2 border-indigo-500 group-hover:border-pink-600"></div>
-                      {/* Bottom-left corner */}
-                      <div className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b-2 border-l-2 border-indigo-500 group-hover:border-pink-600"></div>
-                      {/* Bottom-right corner */}
-                      <div className="absolute bottom-0 right-0 w-1.5 h-1.5 border-b-2 border-r-2 border-indigo-500 group-hover:border-pink-600"></div>
+                      <Icon icon="bi:qr-code-scan" className="text-4xl text-gray-700 cursor-pointer hover:text-indigo-500" onClick={showQRCode} />
                     </div>
                   </div>
                 )}
