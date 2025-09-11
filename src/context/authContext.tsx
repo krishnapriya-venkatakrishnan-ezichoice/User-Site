@@ -29,6 +29,7 @@ interface AuthContextType {
   provider: string;
   socialUserImg: string;
   setIsUserUpdated: React.Dispatch<React.SetStateAction<boolean>>;
+  type?: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isProfileCompleted, setIsProfileCompleted] = useState<boolean>(false);
   const [isUserUpdated, setIsUserUpdated] = useState<boolean>(false);
   const [provider, setProvider] = useState<string>("");
+  const [type, setType] = useState<string | null>(null);
   
   useEffect(() => {
     const {
@@ -114,6 +116,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       if (userType)
         setIsProfileCompleted(true);
+
+      setType(userType);
 
       if (user?.app_metadata.provider !== "email") {
         if (avatarUrl) 
@@ -228,7 +232,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isProfileCompleted,
         provider,
         socialUserImg,
-        setIsUserUpdated
+        setIsUserUpdated,
+        type
       }}
     >
       {children}
