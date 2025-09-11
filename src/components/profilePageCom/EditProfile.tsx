@@ -2,17 +2,16 @@
 
 import { supabase } from '@/lib/supabase';
 import { calculateAge, getCities, getCountryData } from '@/utils';
-import { GENERAL_SUPPORTED_FORMATS, IMAGE_SUPPORTED_FORMATS } from '@/utils/constants';
+import { GENERAL_SUPPORTED_FORMATS } from '@/utils/constants';
 import { registrationFormType } from '@/utils/schemas/registrationForm';
 import { Icon } from '@iconify/react';
 
 import { useFormik } from 'formik';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { editFormInitialValues, editFormType, editProfileFormValidationSchema, setDefaultValuesInEditForm } from '@/utils/schemas/editProfileForm';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -22,6 +21,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { useAuth } from '@/context/authContext';
 import { updateProfile } from '@/utils/actions/storage';
 import LoadingSpinner from '../loadingCom/LoadingSpinner';
+import EditProfileImage from './EditProfileImage';
 
 const EditProfile = (
   { userId, userEmail, provider, setIsEditing } 
@@ -62,7 +62,6 @@ const EditProfile = (
       try{
         setSubmitting(true);
         setIsUserUpdated(false);
-        debugger;
         // Step-1: pass the form data to the server action
         const formData = new FormData();
         formData.append("fullName", values.fullName);
@@ -139,7 +138,6 @@ const EditProfile = (
 
   // useEffect-1: Get the profiles data
   useEffect(() => {
-    debugger;
     const fetchUserProfile = async () => {
       setIsLoading(true);
       try {
@@ -283,6 +281,19 @@ const EditProfile = (
     }
   
   }, [formik.values.nationalIdProof]);
+
+  const setProfilePic = async (profilePic: File | string| null) => {
+    formik.setFieldValue("profilePic", profilePic);
+    formik.setTouched({profilePic: true});
+    setTimeout(() => {
+      formik.validateField("profilePic")
+    }, 0);
+    
+  }
+
+  const blurProfilePic = (event: React.FocusEvent<HTMLInputElement>) => {
+    formik.handleBlur(event);
+  }
 
   // Helper function for rendering file input sections
   const renderFileInput = (
@@ -480,6 +491,11 @@ const EditProfile = (
               maxDate={datePickerMaxDate}
               autoComplete={autoComplete}
               className={`${inputClasses} `}
+              disabled={
+                formikFieldName === "dob" ? 
+                  profile?.date_of_birth ? true: false
+                : false
+              }
               />
           ) : type === "tel" ? (
             <div className="flex items-center">
@@ -508,7 +524,7 @@ const EditProfile = (
               value={value}
               autoComplete={autoComplete}
               className={`${inputClasses}`}
-              disabled={autoComplete === "email"}
+              disabled={formikFieldName === "email" || (profile?.user_type === "pension" && formikFieldName === "nationalId" ? true: false) || (profile?.user_type === "student" && formikFieldName === "school.id" ? true: false)}
             />
             </div>
           )}
@@ -548,47 +564,13 @@ const EditProfile = (
             
             {/* Profile picture */}
             <div className="md:col-span-2 flex flex-col items-center">
-              <div className="flex items-center gap-2">
-              <label htmlFor="profilePic" className="relative w-32 h-32 md:w-48 md:h-48 mx-auto rounded-full overflow-hidden bg-gray-100 border-4 border-transparent hover:border-indigo-600 group cursor-pointer flex items-center justify-center transition-all duration-300">
-                <input
-                  id="profilePic"
-                  name="profilePic"
-                  type="file"
-                  accept={IMAGE_SUPPORTED_FORMATS.join(",")}
-                  onChange={(event) => {
-                    const file = event.currentTarget.files ? event.currentTarget.files[0] : null
-                    formik.setFieldValue("profilePic", file);
-                    setTimeout(() => {
-                      formik.validateField("profilePic")
-                    }, 0);
-                  }}
-                  onBlur={formik.handleBlur}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+              <div className="flex flex-col items-center gap-2">
+                <EditProfileImage 
+                  prevProfile={profile?.avatar_url || null}
+                  setProfilePic={setProfilePic}
+                  blurProfilePic={blurProfilePic}
+                  imagePreviewUrl={imagePreviewUrl}
                 />
-  
-                {
-                  imagePreviewUrl ? (
-                    <Image
-                    src={imagePreviewUrl}
-                    alt="Profile preview"
-                    width={32}
-                    height={32}
-                    className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 group-hover:hidden">
-                      <Icon icon="bi:person" className="text-4xl" />
-                    </div>
-                  )
-                }
-                  
-                <div className="absolute inset-0 hidden group-hover:flex items-center justify-center text-gray-400 text-sm font-semiboild opactiy-0 group-hover:opacity-100 group-hover:bg-opacity-50 transition-opacity duration-300">
-                    <Icon icon="bi:camera-fill" className="text-4xl" />
-                </div>
-              </label>
-              <div className="cursor-pointer" onClick={() => formik.setFieldValue("profilePic", "")}>
-                <Icon icon="bi:trash" className="text-red-500" />
-              </div>
               </div>
               {formik.touched.profilePic && formik.errors.profilePic ? (
                 <div className="mt-1 text-sm text-red-600">
