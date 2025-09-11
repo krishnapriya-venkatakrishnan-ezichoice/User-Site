@@ -11,13 +11,3 @@ export const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
 );
 
-// This client is used for server-side admin tasks that require elevated privileges, 
-// such as bypassing Row Level Security (RLS) to upload or delete files.
-// It is authenticated using the service_role_key.
-
-export async function createAdminClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!, 
-    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!,
-  )
-}

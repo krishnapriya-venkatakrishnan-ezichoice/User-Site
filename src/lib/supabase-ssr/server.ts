@@ -30,3 +30,33 @@ export async function createSessionClient() {
     }
   )
 }
+
+// This client is used for server-side admin tasks that require elevated privileges, 
+// such as bypassing Row Level Security (RLS) to upload or delete files.
+// It is authenticated using the secret_key.
+export async function createAdminClient() {
+  const cookieStore = cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.UPLOAD_AND_MOVE_FILES_FROM_STORAGE!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
+    }
+  )
+}

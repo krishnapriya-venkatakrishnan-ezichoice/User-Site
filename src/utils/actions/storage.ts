@@ -1,7 +1,6 @@
 'use server'
 
-import { createAdminClient } from '@/lib/supabase';
-import { createSessionClient } from '@/lib/supabase-ssr/server';
+import { createAdminClient, createSessionClient } from '@/lib/supabase-ssr/server';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 const environment = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
