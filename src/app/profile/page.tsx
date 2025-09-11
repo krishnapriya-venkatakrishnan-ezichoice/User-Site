@@ -3,10 +3,14 @@
 import EditProfile from "@/components/profilePageCom/EditProfile";
 import { useAuth } from "@/context/authContext";
 import { supabase } from "@/lib/supabase";
+import { Icon } from '@iconify/react';
+import { toPng } from 'html-to-image';
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { confirmAlert } from 'react-confirm-alert'; // Import
+import 'react-confirm-alert/src/react-confirm-alert.css'; // Import css
 import QRCode from "react-qr-code";
 import { ClipLoader } from "react-spinners";
 
@@ -96,6 +100,102 @@ const ProfilePage: React.FC = () => {
     );
   }
 
+  const shareQRCode = async () => {
+    const qrCodeElement = document.querySelector('#qr-code');
+    if (!qrCodeElement) {
+      console.error('QR code element not found');
+      return;
+    }
+
+    try {
+      // create a Promise that resolves to a Blob
+      // toPng is a function from the html-to-image library that converts a DOM node to a PNG data URL
+      const blob = await new Promise<Blob | null>((resolve) => {
+        toPng(qrCodeElement as HTMLElement, {
+          width: 512,
+          height: 512
+        })
+          .then((dataUrl) => fetch(dataUrl).then(res => res.blob()))
+          .then((blob) => resolve(blob))
+          .catch(() => resolve(null));
+      });
+
+      // if blob is null, throw an error
+      if (!blob) {
+        throw new Error('Failed to convert QR code to image');
+      }
+      // create a File from the Blob
+      const file = new File([blob as Blob], 'qrcode.png', { type: 'image/png' });
+
+      // Use the Web Share API to share the file
+      // check if the files property is supported
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        // triggers the native share dialog, which allows sharing to apps like WhatsApp, Email, etc.
+        await navigator.share({
+          files: [file],
+          title: 'My QR Code',
+          text: 'Here is my QR code!',
+        });
+        console.log('QR code shared successfully');
+      } else {
+        alert('Sharing not supported on this browser. Please download the QR code instead.');
+      }
+
+    } catch (error) {
+      console.error('Error sharing QR code:', error);
+    }
+  }
+
+  const downloadQRCode = () => {
+    const qrCodeElement = document.querySelector('#qr-code');
+    if (!qrCodeElement) return;
+
+    // convert the QR code element to a PNG image and trigger a download
+    toPng(qrCodeElement as HTMLElement, {
+      width: 512,
+      height: 512
+    })
+      .then((dataUrl) => {
+        const downloadLink = document.createElement('a');
+        downloadLink.href = dataUrl;
+        downloadLink.download = 'qrcode.png';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      })
+      .catch((error) => {
+        console.error('Error downloading QR code:', error);
+      });
+  };
+
+  const showQRCode = () => {
+    confirmAlert({
+      customUI: ({ onClose }) => {  
+        return (
+          <div className='relative bg-white h-screen max-h-[500px] px-10 rounded-md shadow-lg shadow-indigo-500 border-2 border-blue-500 flex flex-col items-center justify-center gap-4 w-screen max-w-4xl'>
+            <button className='absolute p-1 text-white rounded-md top-1 right-1' onClick={onClose}>
+              <Icon icon="bi:x-circle" className="text-red-500 hover:bg-red-500 hover:text-white rounded-full" />
+            </button>
+            <QRCode 
+            value={JSON.stringify({ email: userEmail })} 
+            id="qr-code" 
+            fgColor="#000000"
+            bgColor="#ffffff"
+            />
+            <div className="flex items-center justify-center gap-4">
+            <button className='py-1 px-2 bg-white rounded-md text-blue-500 hover:bg-blue-500 hover:text-white flex items-center gap-2' onClick={shareQRCode}>
+              <Icon icon="bi:share" className="" /> Share
+            </button>
+            <button className='py-1 px-2 bg-white rounded-md text-blue-500 hover:bg-blue-500 hover:text-white flex items-center gap-2' onClick={downloadQRCode}>
+              <Icon icon="bi:download" className="" /> Download
+            </button>
+            </div>
+          </div>
+        );
+      }
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4">
       <div className="max-w-5xl mx-auto bg-white rounded-md shadow-lg p-6 relative">
@@ -158,26 +258,21 @@ const ProfilePage: React.FC = () => {
                 {profile?.username && (
                   <p className="text-gray-500">@{profile.username}</p>
                 )}
+                {/* QR Code for the user's email (if available) */}
+                {userEmail && (
+                  <div className="flex flex-col items-center relative">
+                    <div className="bg-white p-1 rounded-md relative group">
+                      <Icon icon="bi:qr-code-scan" className="text-4xl text-gray-700 cursor-pointer hover:text-indigo-500" onClick={showQRCode} />
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           ) : profile?.id && (
             <EditProfile userId={profile?.id} userEmail={userEmail} provider={provider} setIsEditing={setIsEditing} />
           )}
 
-          {/* QR Code for the user's email (if available) */}
-          {userEmail && (
-            <div className="flex flex-col items-center mt-8">
-              <p className="text-sm text-gray-600 mb-2">
-                Show this to the shop owner to claim your offers
-              </p>
-              <div className="bg-white p-2 rounded-md shadow-md">
-                <QRCode value={JSON.stringify({ email: userEmail })} />
-              </div>
-              <p className="text-xs text-gray-500 mt-2 break-words">
-                {userEmail}
-              </p>
-            </div>
-          )}
+          
           
         </div>
       </div>
