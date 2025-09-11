@@ -6,8 +6,6 @@ export interface editFormType {
   profilePic: string | File | null,
   fullName: string,
   email: string,
-  password: string,
-  confirmPassword: string,
   address: {
     addressLine1: string,
     addressLine2?: string,
@@ -32,8 +30,6 @@ export const editFormInitialValues = {
   profilePic: "",
   fullName: "",
   email: "",
-  password: "",
-  confirmPassword: "",
   address: {
     addressLine1: "",
     addressLine2: "",
@@ -59,8 +55,6 @@ export const setDefaultValuesInEditForm = (data: Profile, userEmail: string, set
     profilePic: data.avatar_url || "",
     fullName: data.full_name!,
     email: data.email || userEmail,
-    password: data.password || "",
-    confirmPassword: data.password || "",
     address: {
       addressLine1: data.address_line1 || "",
       addressLine2: data.address_line2 || "",
@@ -112,25 +106,6 @@ export const setDefaultValuesInEditForm = (data: Profile, userEmail: string, set
       )
       return imageFileSchema;
   }
-
-// Yup Schema for password
-  const getPasswordSchema = (provider: string) => {
-    const passwordSchema = Yup.string()
-      .min(6, "Password must be at least 6 characters")
-      .matches(/[a-z]+/, "Password must contain at least one lowercase letter")
-      .matches(/[A-Z]+/, "Password must contain at least one uppercase letter")
-      .matches(/\d+/, "Password must contain at least one digit")
-      .test(
-        "password-required",
-        "Password is required",
-        function (value) {
-          if (!value && provider === "email") return false;
-          return true;
-        }
-      );
-    
-      return passwordSchema;
-  }  
 
 // Yup Schema for proof file upload
 const proofFileSchema = Yup.array()
@@ -207,14 +182,6 @@ export const editProfileFormValidationSchema = (provider: string) => {
     email: Yup.string()
       .email("Invalid email address")
       .required("Email address is required"),
-    password: getPasswordSchema(provider),
-    confirmPassword: Yup.string()
-      .when("password", {
-        is: (password: string) => !!password,
-        then: (schema) => schema.required("Confirm password is required"),
-        otherwise: (schema) => schema.notRequired()
-      })
-      .oneOf([Yup.ref("password")], "Passwords must match"),
     userType: Yup.string()
       .required("User type is required")
       .when("dob", {

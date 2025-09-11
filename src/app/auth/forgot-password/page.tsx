@@ -1,12 +1,17 @@
 "use client";
-import React from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
 import { supabase } from "@/lib/supabase";
+import { useFormik } from "formik";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import * as Yup from "yup";
 
 export default function ForgotPassword() {
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from") || null;
+  const router = useRouter();
+
   const formik = useFormik({
     initialValues: {
       email: "",
@@ -19,7 +24,7 @@ export default function ForgotPassword() {
         const { data, error } = await supabase.auth.resetPasswordForEmail(
           values.email,
           {
-            redirectTo: `${window.location.origin}/auth/reset-password`, // The page where user will reset the password
+            redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/api/reset-password`, // The page where user will reset the password
           }
         );
 
@@ -34,6 +39,7 @@ export default function ForgotPassword() {
             autoClose: 3000,
           });
         }
+        router.push("/auth/login");
       } catch (error) {
         console.error(error);
         toast.error("Error sending reset email", {
@@ -51,13 +57,15 @@ export default function ForgotPassword() {
       <div className="flex min-h-full flex-col justify-center px-6 py-4 lg:px-8">
         <div className="border-2 sm:mx-auto sm:w-full sm:max-w-sm p-3 rounded-md">
           <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-            <img
+            <Image
               className="mx-auto h-10 w-auto"
               src="/logo.png"
               alt="Ezichoice"
+              height={10}
+              width={10}
             />
             <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
-              Forgot your password?
+              {from ? "Change your password": "Forgot your password?"}
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
               Enter your email address below to reset your password.
@@ -71,7 +79,7 @@ export default function ForgotPassword() {
                   htmlFor="email"
                   className="block text-sm font-medium leading-6 text-gray-900"
                 >
-                  Email address
+                  Email address <span className="text-red-600">*</span>
                 </label>
                 <div className="mt-2">
                   <input
@@ -83,7 +91,7 @@ export default function ForgotPassword() {
                     onBlur={formik.handleBlur}
                     value={formik.values.email}
                     autoComplete="email"
-                    className={`block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 ${
+                    className={`block w-full rounded-md border-0 p-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 ${
                       formik.touched.email && formik.errors.email
                         ? "ring-red-500"
                         : ""
@@ -108,7 +116,7 @@ export default function ForgotPassword() {
               </div>
             </form>
 
-            <p className="mt-10 text-center text-sm text-gray-500">
+            {!from && <p className="mt-10 text-center text-sm text-gray-500">
               Remember your password?{" "}
               <a
                 href="/auth/login"
@@ -116,7 +124,7 @@ export default function ForgotPassword() {
               >
                 Login
               </a>
-            </p>
+            </p>}
           </div>
         </div>
         <ToastContainer />

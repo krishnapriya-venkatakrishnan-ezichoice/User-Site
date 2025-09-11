@@ -4,6 +4,8 @@ import AppleLoginButton from "@/components/loginPageCom/appleLoginButton";
 import GoogleLoginButton from "@/components/loginPageCom/googleLoginButton";
 import { supabase } from "@/lib/supabase";
 import { useFormik } from "formik";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -61,10 +63,12 @@ export default function LoginPage() {
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <div className="text-center">
-          <img
+          <Image
             className="mx-auto h-16 w-auto"
             src="/logo.png"
             alt="Ezichoice"
+            height={16}
+            width={16}
           />
           <h2 className="mt-10 text-2xl font-bold leading-9 tracking-tight text-gray-900">
             Login to your account
@@ -77,7 +81,7 @@ export default function LoginPage() {
               htmlFor="email"
               className="block text-sm font-medium leading-6 text-gray-900"
             >
-              Email address
+              Email address <span className="text-red-600">*</span>
             </label>
             <div className="mt-2">
               <input
@@ -109,15 +113,15 @@ export default function LoginPage() {
                 htmlFor="password"
                 className="block text-sm font-medium leading-6 text-gray-900"
               >
-                Password
+                Password <span className="text-red-600">*</span>
               </label>
               <div className="text-sm">
-                <a
-                  href="#"
+                <Link
+                  href={`${process.env.NEXT_PUBLIC_BASE_URL}/auth/forgot-password`}
                   className="font-semibold text-indigo-600 hover:text-indigo-500"
                 >
                   Forgot password?
-                </a>
+                </Link>
               </div>
             </div>
             <div className="mt-2">
