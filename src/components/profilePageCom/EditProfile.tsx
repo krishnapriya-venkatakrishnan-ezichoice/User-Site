@@ -19,7 +19,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
 
 import { useAuth } from '@/context/authContext';
-import { updateProfile } from '@/utils/actions/storage';
+import { updateProfile, verifyUsername } from '@/utils/actions/storage';
 import LoadingSpinner from '../loadingCom/LoadingSpinner';
 import EditProfileImage from './EditProfileImage';
 
@@ -41,6 +41,8 @@ const EditProfile = (
   const [profile, setProfile] = useState<Profile | null>(null);
 
   const [defaultValues, setDefaultValues] = useState<editFormType>(editFormInitialValues);
+
+  const [isUsernameLoading, setIsUsernameLoading] = useState<boolean>(false);
   
   const [cities, setCities] = useState([...getCities("all")]); // used in City dropdown
   
@@ -62,9 +64,22 @@ const EditProfile = (
       try{
         setSubmitting(true);
         setIsUserUpdated(false);
+        
+        const { exists, success, errors } = await verifyUsername(values.username!, "edit", profile?.user_name);
+        
+        if (exists) {
+          formik.setFieldError("username", "Username already taken. Please choose another one.");
+          return;
+          
+        } else if (!success) {
+          formik.setFieldError("username", errors?.[0] || "Error validating username. Please try again.");
+          return;
+        }
+        
         // Step-1: pass the form data to the server action
         const formData = new FormData();
         formData.append("fullName", values.fullName);
+        formData.append("username", values.username!);
         formData.append("email", values.email);
         formData.append("phone", values.phone);
         if (values.dob)
@@ -114,6 +129,7 @@ const EditProfile = (
   
         // Step-3: Redirect to login page
         router.push("/profile");
+        setIsEditing(false);
       }
       catch (error: any) {
         // Step-4: Handle errors
@@ -131,10 +147,44 @@ const EditProfile = (
         // Step-5: Always reset submitting state
         setIsUserUpdated(true);
         setSubmitting(false); // Ensure this is called once after async process completes
-        setIsEditing(false);
+        
       }
     }
   });
+
+  const generateAndSetUserName = async () => {
+    setIsUsernameLoading(true);
+    
+    let usernameFound = false;
+    while(!usernameFound) {
+      const letters = 'abcdefghijklmnopqrstuvwxyz';
+      const digits = '0123456789';
+      const allChars = letters + digits;
+
+      const getRandomChar = (chars: string) => chars.charAt(Math.floor(Math.random() * chars.length));
+      
+      let chars = [
+        getRandomChar(letters),
+        getRandomChar(digits),
+        ...Array.from({length: 3}, () => getRandomChar(allChars))
+      ];
+
+      const shuffledUsername = chars.sort(() => 0.5 - Math.random()).join('');
+      
+      const { exists, success, errors } = await verifyUsername(shuffledUsername, "edit", profile?.user_name);
+        
+      if (!exists && success) {
+        formik.setFieldValue("username", shuffledUsername);
+        usernameFound = true;
+      } else if (!success) {
+        console.error("Error checking username existence:", errors);
+        formik.setFieldError("username", errors?.[0] || "Error validating username. Please try again.");
+        usernameFound = true; // To avoid infinite loop in case of error  
+      }
+      
+    }
+    setIsUsernameLoading(false);
+  }
 
   // useEffect-1: Get the profiles data
   useEffect(() => {
@@ -464,7 +514,20 @@ const EditProfile = (
     return (
       <div className="relative">
         <label htmlFor={formikFieldName} className="block text-sm font-medium leading-6 text-gray-900">
-          {label} {mandatory && <span className="text-red-600">*</span>}
+          <div className="flex items-center justify-between">
+            <div>
+            {label} {mandatory && <span className="text-red-600">*</span>}
+            </div>
+            {formikFieldName === "username" && (
+              <button
+                type="button"
+                onClick={generateAndSetUserName}
+                className={`px-2 py-1.5 flex items-center text-gray-400 focus:outline-none hover:text-indigo-500 relative`}
+              >
+                {!isUsernameLoading && <Icon icon="carbon:renew" className="text-xl absolute -top-2 right-2" />}
+              </button>
+            )}
+          </div>
         </label>
         <div className="">
           {type === "date" ? (
@@ -519,7 +582,14 @@ const EditProfile = (
               id={formikFieldName}
               name={formikFieldName}
               type={inputType}
-              onChange={formik.handleChange}
+              onChange={(e) => {
+                if (formikFieldName === "username"){
+                  const lowercasedValue = e.target.value.toLowerCase();
+                  formik.setFieldValue(formikFieldName, lowercasedValue);
+                } else {
+                  formik.handleChange(e);
+                }
+              }}
               onBlur={formik.handleBlur}
               value={value}
               autoComplete={autoComplete}
@@ -583,6 +653,7 @@ const EditProfile = (
             {/* Common fields */}
             <h3 className="md:col-span-2 font-semibold text-gray-300 pt-4 uppercase">Basic Information</h3>
             {renderInputField("fullName", true, "Full Name", "text", "name")}
+            {renderInputField("username", true, "Username", "text", "username")}
             {renderInputField("email", true, "Email Address", "email", "email")}
             {renderInputField("phone", true, "Phone Number", "tel", "tel")}
             {renderInputField("dob", true, "Date of Birth", "date", "bday")}

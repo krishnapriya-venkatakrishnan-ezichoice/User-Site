@@ -33,7 +33,7 @@ export async function createSessionClient() {
 
 // This client is used for server-side admin tasks that require elevated privileges, 
 // such as bypassing Row Level Security (RLS) to upload or delete files.
-// It is authenticated using the secret_key.
+// It is authenticated using the secret_key.- To move files from one bucket to another
 export async function createAdminClient() {
   const cookieStore = cookies();
 
@@ -56,6 +56,22 @@ export async function createAdminClient() {
             // user sessions.
           }
         },
+      },
+    }
+  )
+}
+
+// The below secret key is used to verify the uniquesness of the usernames
+export async function createUsernameClient() {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_USERNAME_VERIFICATION_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return []
+        },
+        setAll() {},
       },
     }
   )

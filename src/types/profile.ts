@@ -3,6 +3,7 @@ interface Profile {
   password?: string | null;
   avatar_url?: string | null;
   full_name: string | null;
+  user_name: string;
   phone_number?: string | null;
   user_type?: string | null;
   date_of_birth?: string | null;

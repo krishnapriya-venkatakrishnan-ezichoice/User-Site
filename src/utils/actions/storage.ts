@@ -1,7 +1,9 @@
 'use server'
 
-import { createAdminClient, createSessionClient } from '@/lib/supabase-ssr/server';
+import { createAdminClient, createSessionClient, createUsernameClient } from '@/lib/supabase-ssr/server';
 import { SupabaseClient } from '@supabase/supabase-js';
+import * as Yup from 'yup';
+import { usernameSchema } from '../schemas/registrationForm';
 
 const environment = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
@@ -25,6 +27,7 @@ export const gSignInWithOAuth = async () => {
 export async function signUpWithCredentials(formData: FormData, currentCountryCode: string) : Promise<boolean> {
     
   const fullName = formData.get("fullName") as string;
+  const username = formData.get("username") as string;
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const phone = formData.get("phone") as string;
@@ -134,6 +137,7 @@ export async function signUpWithCredentials(formData: FormData, currentCountryCo
 
         email: email,
         full_name: fullName,
+        user_name: username,
         phone_number: phone,
         user_type: userType,
         date_of_birth: dob,
@@ -265,6 +269,7 @@ export async function moveTempToPermStorage(supabase: SupabaseClient) : Promise<
 
 export async function updateProfile(formData: FormData, currentCountryCode: string, userId: string, userData: Profile): Promise<boolean> {
   const fullName = formData.get("fullName") as string;
+  const username = formData.get("username") as string;
   const email = formData.get("email") as string;
   const phone = formData.get("phone") as string;
         
@@ -471,6 +476,7 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
       .from("profiles")
       .update({
         full_name: fullName,
+        user_name: username,
         email: email,
         phone_number: phone,
         user_type: userType,
@@ -499,4 +505,69 @@ export async function updateProfile(formData: FormData, currentCountryCode: stri
     throw new Error(`Profile update failed: ${error.message}`);
   }
   
+}
+
+export async function verifyUsername(username: string, form: "register" | "edit", currentUsername?: string): Promise<{
+  exists: boolean;
+  success: boolean;
+  errors?: string[];
+}> {
+
+  if (form === "edit" && username === currentUsername) {
+    return {
+      exists: false,
+      success: true
+    }; // username unchanged
+  }
+  
+  const supabase = await createUsernameClient();
+  
+  try {
+
+    await usernameSchema.validate(username);
+    
+    // check if the user already exists or not
+    const { data: existingUser, error: existingUserError } = await supabase
+      .from("profiles")
+      .select("user_name")
+      .eq("user_name", username);
+
+    if (existingUserError) {
+      console.error("Error checking for existing user!", existingUserError);
+      return {
+        exists: false,
+        success: false,
+        errors: ["Unexpected server error occurred."]
+      }
+    }
+
+    if (existingUser?.length > 0)
+      return {
+        exists: true, 
+        success: true
+      }; // username taken
+
+    return {
+      exists: false, 
+      success: true
+    }; // username available
+
+  } catch (error: any) {
+
+    if (error instanceof Yup.ValidationError) {
+      console.error("Username validation error: ", error);
+      return { 
+        exists: false, 
+        success: false, 
+        errors: error.errors 
+      };
+    }
+
+    console.error("Username verification error: ", error);
+    return {
+      exists: false,
+      success: false,
+      errors: ["Unexpected error occured during verification."]
+    }
+  }
 }

@@ -17,7 +17,7 @@ import { ClipLoader } from "react-spinners";
 interface Profile {
   id: string;
   full_name: string;
-  username: string;
+  user_name: string;
   avatar_url: string;
 }
 
@@ -78,7 +78,7 @@ const ProfilePage: React.FC = () => {
     };
 
     fetchUserProfile();
-  }, [router]);
+  }, [router, isEditing]);
 
   const handleEditClick = () => {
     setIsEditing(true);
@@ -177,7 +177,7 @@ const ProfilePage: React.FC = () => {
               <Icon icon="bi:x-circle" className="text-red-500 hover:bg-red-500 hover:text-white rounded-full" />
             </button>
             <QRCode 
-            value={JSON.stringify({ email: userEmail })} 
+            value={JSON.stringify({ email: userEmail, username: profile?.user_name! })} 
             id="qr-code" 
             fgColor="#000000"
             bgColor="#ffffff"
@@ -255,14 +255,14 @@ const ProfilePage: React.FC = () => {
                 <h1 className="text-2xl font-bold">
                   {profile?.full_name || "Unnamed User"}
                 </h1>
-                {profile?.username && (
-                  <p className="text-gray-500">@{profile.username}</p>
-                )}
-                {/* QR Code for the user's email (if available) */}
-                {userEmail && (
-                  <div className="flex flex-col items-center relative">
-                    <div className="bg-white p-1 rounded-md relative group">
-                      <Icon icon="bi:qr-code-scan" className="text-4xl text-gray-700 cursor-pointer hover:text-indigo-500" onClick={showQRCode} />
+                {/* QR Code for the user */}
+                {profile?.user_name && (
+                  <div className="flex items-center justify-center gap-4">
+                    <span className="text-gray-700 font-medium">&{profile.user_name}</span>
+                    <div className="flex flex-col items-center relative">
+                      <div className="bg-white p-1 rounded-md relative group">
+                        <Icon icon="bi:qr-code-scan" className="text-4xl text-gray-700 cursor-pointer hover:text-indigo-500" onClick={showQRCode} />
+                      </div>
                     </div>
                   </div>
                 )}

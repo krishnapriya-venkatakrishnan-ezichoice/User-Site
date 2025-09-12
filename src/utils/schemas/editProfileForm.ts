@@ -1,10 +1,12 @@
 import * as Yup from "yup";
 import { calculateAge } from "../ageCalculator";
 import { FILE_SIZE_LIMIT, GENERAL_SUPPORTED_FORMATS, IMAGE_SUPPORTED_FORMATS } from "../constants";
+import { usernameSchema } from "./registrationForm";
 
 export interface editFormType {
   profilePic: string | File | null,
   fullName: string,
+  username: string,
   email: string,
   address: {
     addressLine1: string,
@@ -29,6 +31,7 @@ export interface editFormType {
 export const editFormInitialValues = {
   profilePic: "",
   fullName: "",
+  username: "",
   email: "",
   address: {
     addressLine1: "",
@@ -54,6 +57,7 @@ export const setDefaultValuesInEditForm = (data: Profile, userEmail: string, set
   setDefaultValues({
     profilePic: data.avatar_url || "",
     fullName: data.full_name!,
+    username: data.user_name!,
     email: data.email || userEmail,
     address: {
       addressLine1: data.address_line1 || "",
@@ -167,6 +171,7 @@ export const editProfileFormValidationSchema = (provider: string) => {
     profilePic: getImageFileSchema(provider),
     fullName: Yup.string()
       .required("Full Name is required"),
+    username: usernameSchema,
     address: addressSchema,
     phone: Yup.string()
       .required("Phone number is required")

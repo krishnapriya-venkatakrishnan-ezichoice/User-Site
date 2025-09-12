@@ -3,7 +3,7 @@
 import { Icon } from "@iconify/react";
 import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import DatePicker from "react-datepicker";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -14,9 +14,8 @@ import { createRegistrationValidationSchema, registrationFormInitialValues, regi
 import "react-datepicker/dist/react-datepicker.css";
 
 import EditProfileImage from "@/components/profilePageCom/EditProfileImage";
-import { signUpWithCredentials } from "@/utils/actions/storage";
+import { signUpWithCredentials, verifyUsername } from "@/utils/actions/storage";
 import Link from "next/link";
-
 
 export default function Page() {
 
@@ -29,6 +28,9 @@ export default function Page() {
   const [nationalIdProofUrl, setNationalIdProofUrl] = useState<string[] | []>([]);
   
   const [showPassword, setShowPassword] = useState(false);
+
+  const [isUsernameLoading, setIsUsernameLoading] = useState<boolean>(false);
+  const initialMount = useRef(true);
 
   const [cities, setCities] = useState([...getCities("all")]); // used in City dropdown
 
@@ -46,11 +48,22 @@ export default function Page() {
     initialValues: registrationFormInitialValues,
     validationSchema: createRegistrationValidationSchema,    
     onSubmit: async (values, {setSubmitting}) => {
+      
       setSubmitting(true);
       try{
+        const { exists, success, errors } = await verifyUsername(values.username!, "register");
+        
+        if (exists) {
+          formik.setFieldError("username", "Username already taken. Please choose another one.");
+          return;
+        } else if (!success) {
+          formik.setFieldError("username", errors?.[0] || "Error validating username. Please try again.");
+          return;
+        }
         // Step-1: pass the form data to the server action
         const formData = new FormData();
         formData.append("fullName", values.fullName);
+        formData.append("username", values.username!);
         formData.append("email", values.email);
         formData.append("password", values.password);
         formData.append("phone", values.phone);
@@ -119,6 +132,53 @@ export default function Page() {
       }
     }
   });
+
+  const generateAndSetUserName = async () => {
+    setIsUsernameLoading(true);
+    
+    let usernameFound = false;
+    while(!usernameFound) {
+      const letters = 'abcdefghijklmnopqrstuvwxyz';
+      const digits = '0123456789';
+      const allChars = letters + digits;
+
+      const getRandomChar = (chars: string) => chars.charAt(Math.floor(Math.random() * chars.length));
+      
+      let chars = [
+        getRandomChar(letters),
+        getRandomChar(digits),
+        ...Array.from({length: 3}, () => getRandomChar(allChars))
+      ];
+
+      const shuffledUsername = chars.sort(() => 0.5 - Math.random()).join('');
+      
+      const { exists, success, errors } = await verifyUsername(shuffledUsername, "register");
+        
+      if (!exists && success) {
+        formik.setFieldValue("username", shuffledUsername);
+        usernameFound = true;
+      } else if (!success) {
+        console.error("Error checking username existence:", errors);
+        formik.setFieldError("username", errors?.[0] || "Error validating username. Please try again.");
+        usernameFound = true; // To avoid infinite loop in case of error  
+      }
+      
+    }
+    setIsUsernameLoading(false);
+  }
+
+  useEffect(() => {
+    const handleUsernameCheck = async () => {
+      if (!formik.values.username)
+        generateAndSetUserName();
+    }
+    
+    if (initialMount.current) {
+      handleUsernameCheck();
+      initialMount.current = false;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // useEffect-1: Populate city, phone code when country is changed
   useEffect(() => {
@@ -363,7 +423,20 @@ export default function Page() {
     return (
       <div className="relative">
         <label htmlFor={formikFieldName} className="block text-sm font-medium leading-6 text-gray-900">
-          {label} {mandatory && <span className="text-red-600">*</span>}
+          <div className="flex items-center justify-between">
+            <div>
+            {label} {mandatory && <span className="text-red-600">*</span>}
+            </div>
+            {formikFieldName === "username" && (
+              <button
+                type="button"
+                onClick={generateAndSetUserName}
+                className={`px-2 py-1.5 flex items-center text-gray-400 focus:outline-none hover:text-indigo-500 relative`}
+              >
+                {!isUsernameLoading && <Icon icon="carbon:renew" className="text-xl absolute -top-2 right-2" />}
+              </button>
+            )}
+          </div>
         </label>
         <div className="">
           {type === "date" ? (
@@ -413,7 +486,14 @@ export default function Page() {
               id={formikFieldName}
               name={formikFieldName}
               type={inputType}
-              onChange={formik.handleChange}
+              onChange={(e) => {
+                if (formikFieldName === "username"){
+                  const lowercasedValue = e.target.value.toLowerCase();
+                  formik.setFieldValue(formikFieldName, lowercasedValue);
+                } else {
+                  formik.handleChange(e);
+                }
+              }}
               onBlur={formik.handleBlur}
               value={value}
               autoComplete={autoComplete}
@@ -480,6 +560,7 @@ export default function Page() {
             {/* Common fields */}
             <h3 className="md:col-span-2 font-semibold text-gray-300 pt-4 uppercase">Basic Information</h3>
             {renderInputField("fullName", true, "Full Name", "text", "name")}
+            {renderInputField("username", true, "Username", "text", "username")}
             {renderInputField("email", true, "Email Address", "email", "email")}
             {renderInputField("password", true, "Password", "password", "new-password", "", true)}
             {renderInputField("confirmPassword", true, "Confirm Password", "password", "new-password", "", true)}

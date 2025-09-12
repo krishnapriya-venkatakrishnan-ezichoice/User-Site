@@ -7,6 +7,7 @@ import { FILE_SIZE_LIMIT, GENERAL_SUPPORTED_FORMATS, IMAGE_SUPPORTED_FORMATS } f
 export interface registrationFormType {
   profilePic: File | null,
   fullName: string,
+  username?: string,
   email: string,
   password: string,
   confirmPassword: string,
@@ -33,6 +34,7 @@ export interface registrationFormType {
 export const registrationFormInitialValues = {
   profilePic: null,
   fullName: "",
+  username: "",
   email: "",
   password: "",
   confirmPassword: "",
@@ -124,12 +126,32 @@ const schoolSchema = Yup.object({
     .min(new Date(), "Expiry date cannot be in the past")
 });
 
+// Yup Schema for Username
+export const usernameSchema = Yup.string()
+  .required("Username is required")
+  .length(5, "Username must be exactly 5 characters")
+  .test(
+    "is-mixed",
+    "Username must contain at least one letter and one digit and only lowercase letters and digits are allowed",
+    function(value) {
+      if (!value || typeof value !== 'string') return false;
+
+      const hasValidChars = /^[a-z\d]{5}$/.test(value);
+      if (!hasValidChars) return false;
+
+      const hasLetter = /[a-z]/.test(value);
+      const hasDigit = /\d/.test(value);
+      
+      return hasLetter && hasDigit;
+    }
+  );
 
 export const createRegistrationValidationSchema = () => {
   return Yup.object().shape({
     profilePic: imageFileSchema,
     fullName: Yup.string()
       .required("Full Name is required"),
+    username: usernameSchema,
     address: addressSchema,
     phone: Yup.string()
       .required("Phone number is required")
